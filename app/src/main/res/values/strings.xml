@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">aceptaKM</string>
+    <string name="accessibility_service_description">aceptaKM analiza las solicitudes de viaje en tiempo real y te muestra si es rentable aceptarlo o no.</string>
+    <string name="accessibility_service_label">aceptaKM Asistente</string>
+    <string name="notification_listener_label">aceptaKM Notificaciones</string>
+</resources>

@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "573327644880",
+    "project_id": "aceptakm",
+    "storage_bucket": "aceptakm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573327644880:android:c61e27afd333c8105226d5",
+        "android_client_info": {
+          "package_name": "com.mavacode.aceptakm"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "573327644880-7qa0rcd0ronj6vnfto3ba4eakoofvo7m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mavacode.aceptakm",
+            "certificate_hash": "2a2098c21b1a3d3201bed3980c4abe347611f5a9"
+          }
+        },
+        {
+          "client_id": "573327644880-mu13k4qvshe39f6hui5fdu6vhqau7d3l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mavacode.aceptakm",
+            "certificate_hash": "52b1185998bd9104cdfd5359e3e6ec250aa7d731"
+          }
+        },
+        {
+          "client_id": "573327644880-tub1s3d8rfc5i6v319ghi3om4urgk95f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mavacode.aceptakm",
+            "certificate_hash": "a8dd5f26418ee4066e437f4969a28309c4b49b68"
+          }
+        },
+        {
+          "client_id": "573327644880-duj2m9n7tijk589nqm5fcvq9tanb1q8f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDy_4kLlxp52zo69X4ybAHQdUnjgt_oh9Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "573327644880-duj2m9n7tijk589nqm5fcvq9tanb1q8f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
