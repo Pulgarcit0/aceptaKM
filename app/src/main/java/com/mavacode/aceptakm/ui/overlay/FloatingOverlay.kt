@@ -307,6 +307,27 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    Text(
+                        text = "Tarifa $${tripData.pagoBruto}",
+                        color = colors.textSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                    if (tripData.montoDinamica != null || tripData.factorDinamica != null) {
+                        val dinamicaTxt = buildString {
+                            append("Dinámica")
+                            tripData.montoDinamica?.let { append(" +$$it") }
+                            tripData.factorDinamica?.let { append(" x$it") }
+                        }
+                        Text(
+                            text = dinamicaTxt,
+                            color = colors.textSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 1.dp)
+                        )
+                    }
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
                         thickness = 1.dp,
