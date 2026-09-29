@@ -22,8 +22,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,7 +43,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
@@ -52,21 +54,39 @@ enum class LoginStep {
 
 @Composable
 fun LoginScreen(
-    onLoginSuccessClick: () -> Unit
+    onLoginSuccessClick: () -> Unit,
+    onNeedEmailVerification: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as Activity
     val coroutineScope = rememberCoroutineScope()
     val auth = remember { FirebaseAuth.getInstance() }
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
     var isLoading by remember { mutableStateOf(false) }
     var currentStep by remember { mutableStateOf(LoginStep.CHOOSE_METHOD) }
-    var inputValue by remember { mutableStateOf("") }      // teléfono o email
-    var password by remember { mutableStateOf("") }       // solo correo
+    var inputValue by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var verificationCode by remember { mutableStateOf("") }
 
     var storedVerificationId by remember { mutableStateOf("") }
     var resendToken by remember { mutableStateOf<PhoneAuthProvider.ForceResendingToken?>(null) }
+
+    val onSuccess by rememberUpdatedState(onLoginSuccessClick)
+    val onNeedVerify by rememberUpdatedState(onNeedEmailVerification)
+
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = cs.primary,
+        unfocusedBorderColor = app.outline,
+        focusedLabelColor = cs.primary,
+        unfocusedLabelColor = app.textSecondary,
+        focusedTextColor = app.textPrimary,
+        unfocusedTextColor = app.textPrimary,
+        focusedContainerColor = app.card,
+        unfocusedContainerColor = app.card,
+        cursorColor = cs.primary
+    )
 
     val callbacks = remember {
         object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
@@ -75,7 +95,7 @@ fun LoginScreen(
                     try {
                         auth.signInWithCredential(credential).await()
                         isLoading = false
-                        onLoginSuccessClick()
+                        onSuccess()
                     } catch (e: Exception) {
                         isLoading = false
                         Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -123,7 +143,7 @@ fun LoginScreen(
                     try {
                         val credential = GoogleAuthProvider.getCredential(idToken, null)
                         auth.signInWithCredential(credential).await()
-                        onLoginSuccessClick()
+                        onSuccess()
                     } catch (e: Exception) {
                         Toast.makeText(context, "Error Firebase: ${e.message}", Toast.LENGTH_LONG).show()
                     }
@@ -148,19 +168,27 @@ fun LoginScreen(
         isLoading = true
         coroutineScope.launch {
             try {
-                // Intenta iniciar sesión
                 auth.signInWithEmailAndPassword(email, pass).await()
+                val user = auth.currentUser
                 isLoading = false
-                onLoginSuccessClick()
-            } catch (e: Exception) {
-                // Si no existe, crea la cuenta
+                if (user != null && !user.isEmailVerified) {
+                    user.sendEmailVerification()
+                    Toast.makeText(context, "Confirma tu correo para continuar", Toast.LENGTH_LONG).show()
+                    onNeedVerify()
+                } else {
+                    onSuccess()
+                }
+            } catch (_: Exception) {
                 try {
                     auth.createUserWithEmailAndPassword(email, pass).await()
-                    // Opcional: enviar verificación
                     auth.currentUser?.sendEmailVerification()
                     isLoading = false
-                    Toast.makeText(context, "Cuenta creada. Revisa tu correo si pedimos verificación.", Toast.LENGTH_LONG).show()
-                    onLoginSuccessClick()
+                    Toast.makeText(
+                        context,
+                        "Te enviamos un enlace. Confirma el correo para entrar.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    onNeedVerify()
                 } catch (e2: Exception) {
                     isLoading = false
                     Toast.makeText(context, "Error: ${e2.message}", Toast.LENGTH_LONG).show()
@@ -172,13 +200,13 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(bgSurface)
+            .background(cs.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = app.card),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
@@ -197,7 +225,11 @@ fun LoginScreen(
                             password = ""
                             verificationCode = ""
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextGray)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = app.textSecondary
+                            )
                         }
                     }
                 }
@@ -205,13 +237,13 @@ fun LoginScreen(
                 Box(
                     modifier = Modifier
                         .size(72.dp)
-                        .background(primaryBlue, CircleShape),
+                        .background(cs.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.TwoWheeler,
-                        contentDescription = "aceptakm Logo",
-                        tint = Color.White,
+                        contentDescription = "AceptaKm Logo",
+                        tint = cs.onPrimary,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -220,7 +252,7 @@ fun LoginScreen(
 
                 Text(
                     text = "AceptaKm",
-                    color = primaryBlue,
+                    color = cs.primary,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -236,7 +268,7 @@ fun LoginScreen(
 
                 Text(
                     text = subtitleText,
-                    color = TextGray,
+                    color = app.textSecondary,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
@@ -286,10 +318,7 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryBlue,
-                                focusedLabelColor = primaryBlue
-                            )
+                            colors = fieldColors
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -297,7 +326,6 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 isLoading = true
-                                // México: +52 + 10 dígitos
                                 val phoneNumber = "+52$inputValue"
                                 val options = PhoneAuthOptions.newBuilder(auth)
                                     .setPhoneNumber(phoneNumber)
@@ -307,9 +335,11 @@ fun LoginScreen(
                                     .build()
                                 PhoneAuthProvider.verifyPhoneNumber(options)
                             },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             enabled = inputValue.length == 10 && !isLoading,
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                         ) {
                             Text("Enviar código SMS")
                         }
@@ -323,10 +353,7 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryBlue,
-                                focusedLabelColor = primaryBlue
-                            )
+                            colors = fieldColors
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -339,24 +366,23 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryBlue,
-                                focusedLabelColor = primaryBlue
-                            )
+                            colors = fieldColors
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
                             onClick = { loginConCorreo() },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             enabled = inputValue.isNotBlank() && password.length >= 6 && !isLoading,
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                         ) {
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = Color.White,
+                                    color = cs.onPrimary,
                                     strokeWidth = 2.dp
                                 )
                             } else {
@@ -375,10 +401,7 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryBlue,
-                                focusedLabelColor = primaryBlue
-                            )
+                            colors = fieldColors
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -386,21 +409,26 @@ fun LoginScreen(
                         Button(
                             onClick = {
                                 isLoading = true
-                                val credential = PhoneAuthProvider.getCredential(storedVerificationId, verificationCode)
+                                val credential = PhoneAuthProvider.getCredential(
+                                    storedVerificationId,
+                                    verificationCode
+                                )
                                 coroutineScope.launch {
                                     try {
                                         auth.signInWithCredential(credential).await()
                                         isLoading = false
-                                        onLoginSuccessClick()
+                                        onSuccess()
                                     } catch (e: Exception) {
                                         isLoading = false
                                         Toast.makeText(context, "Código incorrecto", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
                             enabled = verificationCode.length == 6 && !isLoading,
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                         ) {
                             Text("Verificar y Entrar")
                         }
@@ -410,29 +438,29 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 val annotatedString = buildAnnotatedString {
-                    withStyle(style = SpanStyle(color = TextGray)) { append("Al continuar, aceptas nuestros ") }
+                    withStyle(style = SpanStyle(color = app.textSecondary)) { append("Al continuar, aceptas nuestros ") }
                     pushStringAnnotation(tag = "TOS", annotation = "TOS")
-                    withStyle(style = SpanStyle(color = primaryBlue, fontWeight = FontWeight.Bold)) {
+                    withStyle(style = SpanStyle(color = cs.primary, fontWeight = FontWeight.Bold)) {
                         append("Términos de\nServicio")
                     }
                     pop()
-                    withStyle(style = SpanStyle(color = TextGray)) { append(" y ") }
+                    withStyle(style = SpanStyle(color = app.textSecondary)) { append(" y ") }
                     pushStringAnnotation(tag = "PRIVACY", annotation = "PRIVACY")
-                    withStyle(style = SpanStyle(color = primaryBlue, fontWeight = FontWeight.Bold)) {
+                    withStyle(style = SpanStyle(color = cs.primary, fontWeight = FontWeight.Bold)) {
                         append("Política de Privacidad")
                     }
                     pop()
-                    withStyle(style = SpanStyle(color = TextGray)) { append(".") }
+                    withStyle(style = SpanStyle(color = app.textSecondary)) { append(".") }
                 }
 
                 ClickableText(
                     text = annotatedString,
-                    style = androidx.compose.ui.text.TextStyle(
+                    style = TextStyle(
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 18.sp
                     ),
-                    onClick = { /* TODO: abrir TOS / Privacy */ }
+                    onClick = { }
                 )
             }
         }
@@ -443,23 +471,28 @@ fun LoginScreen(
 fun AuthButton(
     text: String,
     icon: String? = null,
-    iconVector: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    iconColor: Color = textDark,
+    iconVector: ImageVector? = null,
+    iconColor: Color = MaterialTheme.colorScheme.onSurface,
     isLoading: Boolean,
     onClick: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(50.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, outlineGray.copy(alpha = 0.5f)),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, app.outline),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = app.card),
         enabled = !isLoading
     ) {
         if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = primaryBlue, strokeWidth = 2.dp)
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = cs.primary, strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Procesando...", color = textDark, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text("Procesando...", color = app.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -471,7 +504,7 @@ fun AuthButton(
                     Icon(iconVector, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(text, color = textDark, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(text, color = app.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.mavacode.aceptakm.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,8 +8,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,42 +26,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mavacode.aceptakm.domain.model.ZonaPeligrosa
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 import com.mavacode.aceptakm.ui.viewmodel.ZonasViewModel
+
+private val ColorDarkRed = Color(0xFFB72025)
+private val ColorLightPink = Color(0xFFFDECEB)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZonasPeligrosasScreen(viewModel: ZonasViewModel = viewModel()) {
     var textoInput by remember { mutableStateOf("") }
     val zonas by viewModel.listaZonas.collectAsState()
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
-    // Filtramos la lista principal en dos listas distintas basándonos en tu lógica de guardado
     val municipios = zonas.filter { it.palabraClave.startsWith("Municipio/Viaje:") }
     val colonias = zonas.filter { it.palabraClave.startsWith("Colonia:") }
-
-    // Colores extraídos directamente del diseño
-    val colorDarkRed = Color(0xFFB72025)
-    val colorLightPink = Color(0xFFFDECEB)
-    val colorBadgeBg = Color(0xFFE2E8F0)
-    val colorBadgeText = Color(0xFF0F172A)
-    val colorDarkTitle = Color(0xFF111827)
-    val colorBorder = Color(0xFFE5E7EB)
-    val colorItemBg = Color(0xFFF9FAFB)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(cs.background)
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        // HEADER
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Outlined.Security,
                 contentDescription = "Zonas Peligrosas",
-                tint = colorDarkRed,
+                tint = ColorDarkRed,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -64,42 +64,43 @@ fun ZonasPeligrosasScreen(viewModel: ZonasViewModel = viewModel()) {
                 text = "Zonas Peligrosas",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = colorDarkTitle
+                color = cs.onBackground
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ÁREA DE INPUT
         Text(
             text = "Agregar nueva zona",
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.DarkGray
+            color = app.textSecondary
         )
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = textoInput,
             onValueChange = { textoInput = it },
-            placeholder = { Text("Ej. Ecatepec, Tepito, Iztapalapa", color = Color.Gray) },
+            placeholder = { Text("Ej. Ecatepec, Tepito, Iztapalapa", color = app.textSecondary) },
             leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.Gray)
+                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = app.textSecondary)
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedBorderColor = colorBorder,
-                unfocusedBorderColor = colorBorder
+                focusedContainerColor = app.card,
+                unfocusedContainerColor = app.card,
+                focusedBorderColor = cs.primary,
+                unfocusedBorderColor = app.outline,
+                focusedTextColor = app.textPrimary,
+                unfocusedTextColor = app.textPrimary,
+                cursorColor = cs.primary
             ),
             singleLine = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // BOTONES VERTICALES
         Button(
             onClick = {
                 if (textoInput.isNotBlank()) {
@@ -111,7 +112,7 @@ fun ZonasPeligrosasScreen(viewModel: ZonasViewModel = viewModel()) {
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = colorDarkRed)
+            colors = ButtonDefaults.buttonColors(containerColor = ColorDarkRed)
         ) {
             Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
@@ -131,41 +132,29 @@ fun ZonasPeligrosasScreen(viewModel: ZonasViewModel = viewModel()) {
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = colorLightPink)
+            colors = ButtonDefaults.buttonColors(containerColor = ColorLightPink)
         ) {
-            Icon(Icons.Outlined.Map, contentDescription = null, tint = colorDarkRed, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Map, contentDescription = null, tint = ColorDarkRed, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Bloquear Municipio", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colorDarkRed)
+            Text("Bloquear Municipio", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = ColorDarkRed)
         }
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // LISTA DE MUNICIPIOS
         ZonasListCard(
             titulo = "Municipios Bloqueados",
             icono = Icons.Outlined.Map,
-            iconTint = Color(0xFF0052CC),
             items = municipios,
-            onDelete = { viewModel.eliminarZona(it) },
-            badgeBg = colorBadgeBg,
-            badgeText = colorBadgeText,
-            itemBg = colorItemBg,
-            borderColor = colorBorder
+            onDelete = { viewModel.eliminarZona(it) }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // LISTA DE COLONIAS
         ZonasListCard(
             titulo = "Colonias Bloqueadas",
             icono = Icons.Outlined.LocationOn,
-            iconTint = Color(0xFF0052CC),
             items = colonias,
-            onDelete = { viewModel.eliminarZona(it) },
-            badgeBg = colorBadgeBg,
-            badgeText = colorBadgeText,
-            itemBg = colorItemBg,
-            borderColor = colorBorder
+            onDelete = { viewModel.eliminarZona(it) }
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -176,39 +165,37 @@ fun ZonasPeligrosasScreen(viewModel: ZonasViewModel = viewModel()) {
 fun ZonasListCard(
     titulo: String,
     icono: ImageVector,
-    iconTint: Color,
     items: List<ZonaPeligrosa>,
-    onDelete: (ZonaPeligrosa) -> Unit,
-    badgeBg: Color,
-    badgeText: Color,
-    itemBg: Color,
-    borderColor: Color
+    onDelete: (ZonaPeligrosa) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        colors = CardDefaults.cardColors(containerColor = app.card),
+        border = BorderStroke(1.dp, app.outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Encabezado con título y contador
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = icono, contentDescription = titulo, tint = iconTint, modifier = Modifier.size(24.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(imageVector = icono, contentDescription = titulo, tint = cs.primary, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(12.dp))
-                    // Hacemos que el título pueda usar dos líneas si es necesario
                     Text(
                         text = titulo,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        lineHeight = 24.sp,
-                        modifier = Modifier.weight(1f, fill = false)
+                        color = app.textPrimary,
+                        lineHeight = 24.sp
                     )
                 }
 
@@ -216,33 +203,31 @@ fun ZonasListCard(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(badgeBg),
+                        .background(cs.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = items.size.toString(),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = badgeText
+                        color = app.textPrimary
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = borderColor.copy(alpha = 0.5f), thickness = 1.dp)
+            HorizontalDivider(color = app.divider, thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Iterador de elementos
             if (items.isEmpty()) {
                 Text(
                     text = "Aún no has agregado zonas.",
-                    color = Color.Gray,
+                    color = app.textSecondary,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             } else {
                 items.forEach { zona ->
-                    // Removemos el prefijo lógico para que la UI se vea limpia como en tu diseño
                     val textoLimpio = zona.palabraClave
                         .replace("Municipio/Viaje: ", "")
                         .replace("Colonia: ", "")
@@ -252,16 +237,19 @@ fun ZonasListCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp)
-                            .background(itemBg, RoundedCornerShape(12.dp))
+                            .background(app.cardAlt, RoundedCornerShape(12.dp))
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.Block,
                                 contentDescription = "Bloqueado",
-                                tint = Color(0xFFB72025),
+                                tint = ColorDarkRed,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -269,7 +257,7 @@ fun ZonasListCard(
                                 text = textoLimpio,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1F2937)
+                                color = app.textPrimary
                             )
                         }
                         IconButton(
@@ -279,7 +267,7 @@ fun ZonasListCard(
                             Icon(
                                 imageVector = Icons.Outlined.Delete,
                                 contentDescription = "Eliminar",
-                                tint = Color(0xFF6B7280),
+                                tint = app.textSecondary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }

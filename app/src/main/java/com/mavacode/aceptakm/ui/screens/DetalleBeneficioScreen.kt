@@ -1,13 +1,18 @@
 package com.mavacode.aceptakm.ui.screens
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,19 +28,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mavacode.aceptakm.ui.theme.colorBackground
-import com.mavacode.aceptakm.ui.theme.colorIconBg
-import com.mavacode.aceptakm.ui.theme.colorPrimary
-import com.mavacode.aceptakm.ui.theme.colorTextPrimary
-import com.mavacode.aceptakm.ui.theme.colorTextSecondary
 import com.mavacode.aceptakm.R
+import com.mavacode.aceptakm.ui.theme.AceptaKMTheme
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleBeneficioScreen(
     onEntendidoClick: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+    val dark = isSystemInDarkTheme()
 
+    val heroBrush = if (dark) {
+        Brush.linearGradient(listOf(Color(0xFF122033), Color(0xFF1A2740)))
+    } else {
+        Brush.linearGradient(listOf(Color(0xFFE0F7FA), Color(0xFFE8EAF6)))
+    }
 
     Scaffold(
         topBar = {
@@ -44,17 +54,17 @@ fun DetalleBeneficioScreen(
                     Text(
                         text = "Detalles del Beneficio",
                         fontWeight = FontWeight.Bold,
-                        color = colorTextPrimary
+                        color = cs.onBackground
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colorBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = cs.background)
             )
         },
         bottomBar = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colorBackground)
+                    .background(cs.background)
                     .padding(16.dp)
                     .navigationBarsPadding()
             ) {
@@ -63,7 +73,7 @@ fun DetalleBeneficioScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colorPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Entendido", fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -72,7 +82,7 @@ fun DetalleBeneficioScreen(
                 }
             }
         },
-        containerColor = colorBackground
+        containerColor = cs.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -84,43 +94,36 @@ fun DetalleBeneficioScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tarjeta Principal con Gradiente
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color(0xFFE0F7FA), Color(0xFFE8EAF6))
-                        )
-                    )
+                    .background(heroBrush)
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Contenedor de la imagen y el badge del 10%
                     Box(contentAlignment = Alignment.BottomEnd) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_background), // Reemplazar por tu imagen de moto
+                            painter = painterResource(id = R.drawable.ic_launcher_background),
                             contentDescription = "Moto",
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White),
+                                .background(app.card),
                             contentScale = ContentScale.Crop
                         )
-                        // Badge 10%
                         Box(
                             modifier = Modifier
                                 .offset(x = 12.dp, y = 12.dp)
                                 .size(48.dp)
-                                .background(colorPrimary, CircleShape)
+                                .background(cs.primary, CircleShape)
                                 .padding(4.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "10%",
-                                color = Color.White,
+                                color = cs.onPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -133,13 +136,13 @@ fun DetalleBeneficioScreen(
                         text = "10% de descuento",
                         fontSize = 26.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = colorTextPrimary
+                        color = app.textPrimary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "en tu próxima moto o suscripción a través de la plataforma.",
                         fontSize = 15.sp,
-                        color = colorTextSecondary,
+                        color = app.textSecondary,
                         textAlign = TextAlign.Center,
                         lineHeight = 22.sp
                     )
@@ -148,45 +151,36 @@ fun DetalleBeneficioScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Lista de Detalles
             BeneficioItem(
                 icon = Icons.Default.CalendarToday,
                 title = "Vigencia",
-                description = "Válido por 30 días a partir de hoy.",
-                iconBgColor = colorIconBg,
-                iconColor = colorPrimary
+                description = "Válido por 30 días a partir de hoy."
             )
 
-            // Corrección del padding aquí
             HorizontalDivider(
                 modifier = Modifier
                     .padding(start = 64.dp)
                     .padding(vertical = 8.dp),
-                color = Color(0xFFE0E0E0)
+                color = app.divider
             )
 
             BeneficioItem(
                 icon = Icons.Default.Stars,
                 title = "Aplicación",
-                description = "El descuento se aplicará automáticamente en tu siguiente compra o suscripción de vehículo a través de la plataforma.",
-                iconBgColor = colorIconBg,
-                iconColor = colorPrimary
+                description = "El descuento se aplicará automáticamente en tu siguiente compra o suscripción de vehículo a través de la plataforma."
             )
 
-            // Corrección del padding aquí también
             HorizontalDivider(
                 modifier = Modifier
                     .padding(start = 64.dp)
                     .padding(vertical = 8.dp),
-                color = Color(0xFFE0E0E0)
+                color = app.divider
             )
 
             BeneficioItem(
                 icon = Icons.Default.Info,
                 title = "Condiciones",
-                description = "No acumulable con otras promociones. Válido solo para conductores activos.",
-                iconBgColor = colorIconBg,
-                iconColor = colorPrimary
+                description = "No acumulable con otras promociones. Válido solo para conductores activos."
             )
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -195,7 +189,14 @@ fun DetalleBeneficioScreen(
 }
 
 @Composable
-fun BeneficioItem(icon: ImageVector, title: String, description: String, iconBgColor: Color, iconColor: Color) {
+fun BeneficioItem(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -205,16 +206,16 @@ fun BeneficioItem(icon: ImageVector, title: String, description: String, iconBgC
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(iconBgColor, CircleShape),
+                .background(app.iconBg, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = title, tint = iconColor, modifier = Modifier.size(24.dp))
+            Icon(icon, contentDescription = title, tint = cs.primary, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0B1C30))
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = app.textPrimary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = description, fontSize = 14.sp, color = Color(0xFF5E656D), lineHeight = 20.sp)
+            Text(text = description, fontSize = 14.sp, color = app.textSecondary, lineHeight = 20.sp)
         }
     }
 }
@@ -222,5 +223,7 @@ fun BeneficioItem(icon: ImageVector, title: String, description: String, iconBgC
 @Preview(showBackground = true)
 @Composable
 fun DetalleBeneficioPreview() {
-    DetalleBeneficioScreen(onEntendidoClick = {})
+    AceptaKMTheme {
+        DetalleBeneficioScreen(onEntendidoClick = {})
+    }
 }

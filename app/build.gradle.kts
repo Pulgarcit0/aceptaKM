@@ -27,8 +27,8 @@ android {
         applicationId = "com.mavacode.aceptakm"
         minSdk = 26
         targetSdk = 37
-        versionCode = 18
-        versionName = "1.1.72"
+        versionCode = 23
+        versionName = "1.1.103"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -102,4 +102,5 @@ dependencies {
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // Billing
-    implementation("com.android.billingclient:billing-ktx:7.1.1")}
+    implementation("com.android.billingclient:billing-ktx:8.3.0")
+}

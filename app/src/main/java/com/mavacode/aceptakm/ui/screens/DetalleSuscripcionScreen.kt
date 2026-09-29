@@ -21,9 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.ActiveGreen
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
+import com.mavacode.aceptakm.ui.theme.TextRedColor
 
-// --- 1. CLASE DE ESTADO (Para recibir los datos reales) ---
 data class SuscripcionEstado(
     val isActive: Boolean = false,
     val precioMes: String = "$0.00",
@@ -39,30 +40,31 @@ fun DetalleSuscripcionScreen(
     onCambiarPlanClick: () -> Unit,
     onCancelarClick: (String) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     Scaffold(
-        containerColor = LightBackground,
+        containerColor = cs.background,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Mi Suscripción",
-                        color = MainBlueColor,
+                        color = cs.primary,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Color.DarkGray)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = cs.onBackground)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Notificaciones */ }) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones", tint = Color.DarkGray)
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones", tint = cs.onBackground)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = LightBackground
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = cs.background)
             )
         }
     ) { padding ->
@@ -76,22 +78,18 @@ fun DetalleSuscripcionScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- TARJETA AZUL PRINCIPAL ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MainBlueColor),
+                colors = CardDefaults.cardColors(containerColor = cs.primary),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        // Etiqueta de Activo / Inactivo dinámica
                         Row(
                             modifier = Modifier
                                 .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
@@ -102,18 +100,17 @@ fun DetalleSuscripcionScreen(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(if (estado.isActive) ActiveGreen else TextGray)
+                                    .background(if (estado.isActive) ActiveGreen else app.textSecondary)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (estado.isActive) "Activo" else "Inactivo",
-                                color = Color.White,
+                                color = cs.onPrimary,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
 
-                        // Ícono de moto
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -123,7 +120,7 @@ fun DetalleSuscripcionScreen(
                             Icon(
                                 imageVector = Icons.Default.Motorcycle,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = cs.onPrimary,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -133,7 +130,7 @@ fun DetalleSuscripcionScreen(
 
                     Text(
                         text = "Membresía\nPremium",
-                        color = Color.White,
+                        color = cs.onPrimary,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 32.sp
@@ -142,18 +139,16 @@ fun DetalleSuscripcionScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(verticalAlignment = Alignment.Bottom) {
-                        // Precio dinámico
                         Text(
                             text = estado.precioMes,
-                            color = Color.White,
+                            color = cs.onPrimary,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
-                        // Cambiamos el texto dinámicamente dependiendo del producto
-                        val peridoTexto = if (estado.productId == "aceptakm_anual") " /año" else " /mes"
+                        val periodoTexto = if (estado.productId == "aceptakm_anual") " /año" else " /mes"
                         Text(
-                            text = peridoTexto,
-                            color = Color.White.copy(alpha = 0.8f),
+                            text = periodoTexto,
+                            color = cs.onPrimary.copy(alpha = 0.8f),
                             fontSize = 16.sp,
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
@@ -163,11 +158,10 @@ fun DetalleSuscripcionScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- DETALLES DE FACTURACIÓN ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = app.card),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -175,25 +169,29 @@ fun DetalleSuscripcionScreen(
                         text = "DETALLES DE FACTURACIÓN",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextGray,
+                        color = app.textSecondary,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Próxima renovación dinámica
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(LightBackground, CircleShape),
+                                .background(app.iconBg, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.Event, contentDescription = null, tint = MainBlueColor)
+                            Icon(Icons.Outlined.Event, contentDescription = null, tint = cs.primary)
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text(text = "Próxima renovación", fontSize = 12.sp, color = TextGray)
-                            Text(text = estado.fechaRenovacion, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Próxima renovación", fontSize = 12.sp, color = app.textSecondary)
+                            Text(
+                                text = estado.fechaRenovacion,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = app.textPrimary
+                            )
                         }
                     }
                 }
@@ -201,11 +199,10 @@ fun DetalleSuscripcionScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // --- BENEFICIOS PREMIUM ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = app.card),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -213,24 +210,24 @@ fun DetalleSuscripcionScreen(
                         text = "TUS BENEFICIOS PREMIUM",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextGray,
+                        color = app.textSecondary,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    BeneficioItem(
+                    BeneficioPremiumRow(
                         titulo = "Zonas Peligrosas",
                         descripcion = "Alertas y bloqueo de colonias o municipios de alto riesgo."
                     )
-                    BeneficioItem(
+                    BeneficioPremiumRow(
                         titulo = "Filtros Personalizados",
                         descripcion = "Define tu tarifa mínima, distancia y ganancia exacta por viaje."
                     )
-                    BeneficioItem(
+                    BeneficioPremiumRow(
                         titulo = "Cálculo Inteligente",
                         descripcion = "Conoce tu ganancia real restando los impuestos al instante."
                     )
-                    BeneficioItem(
+                    BeneficioPremiumRow(
                         titulo = "Recepción en Segundo Plano",
                         descripcion = "La oruga lee tus viajes incluso mientras usas otras apps."
                     )
@@ -239,14 +236,13 @@ fun DetalleSuscripcionScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- BOTONES INFERIORES CONECTADOS ---
             Button(
-                onClick = { onCambiarPlanClick() },
+                onClick = onCambiarPlanClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MainBlueColor)
+                colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
             ) {
                 Text(text = "Cambiar Plan", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
@@ -259,7 +255,7 @@ fun DetalleSuscripcionScreen(
             ) {
                 Text(
                     text = "Cancelar Suscripción",
-                    color = Color(0xFFDC2626), // Rojo
+                    color = TextRedColor,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -271,7 +267,9 @@ fun DetalleSuscripcionScreen(
 }
 
 @Composable
-fun BeneficioItem(titulo: String, descripcion: String) {
+fun BeneficioPremiumRow(titulo: String, descripcion: String) {
+    val app = AceptaTheme.colors
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -281,21 +279,21 @@ fun BeneficioItem(titulo: String, descripcion: String) {
         Box(
             modifier = Modifier
                 .size(24.dp)
-                .background(LightGreenIconBg, CircleShape),
+                .background(Color(0xFF16351F), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Outlined.CheckCircle,
                 contentDescription = null,
-                tint = DarkGreenIcon,
+                tint = Color(0xFF4ADE80),
                 modifier = Modifier.size(16.dp)
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = titulo, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            Text(text = titulo, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = app.textPrimary)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(text = descripcion, fontSize = 13.sp, color = TextGray)
+            Text(text = descripcion, fontSize = 13.sp, color = app.textSecondary)
         }
     }
 }

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 import kotlinx.coroutines.delay
 
 @Composable
@@ -34,14 +34,14 @@ fun TariffConfigScreen(
     onNextClick: (String) -> Unit
 ) {
     var minimumTariff by remember { mutableStateOf("") }
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
-    // 1. Declaramos las herramientas para controlar el teclado
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // 2. Efecto para abrir el teclado automáticamente al entrar a la pantalla
     LaunchedEffect(Unit) {
-        delay(100) // Pequeña pausa para asegurar que la UI ya cargó
+        delay(100)
         focusRequester.requestFocus()
         keyboardController?.show()
     }
@@ -49,12 +49,11 @@ fun TariffConfigScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(cs.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
-            .imePadding() // 3. Evita que el teclado tape el botón "Siguiente"
+            .imePadding()
     ) {
-        // --- CABECERA Y BARRA DE PROGRESO ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -64,20 +63,20 @@ fun TariffConfigScreen(
                 Icon(
                     imageVector = Icons.Outlined.TwoWheeler,
                     contentDescription = "Logo",
-                    tint = primaryBlue,
+                    tint = cs.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "aceptakm",
-                    color = primaryBlue,
+                    text = "AceptaKm",
+                    color = cs.primary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Text(
                 text = "Paso 1 de 4",
-                color = TextGray,
+                color = app.textSecondary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -85,22 +84,20 @@ fun TariffConfigScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Barra de progreso (25% llena)
         LinearProgressIndicator(
             progress = { 0.25f },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(4.dp),
-            color = primaryBlue,
-            trackColor = Color(0xFFE5E7EB),
+            color = cs.primary,
+            trackColor = app.outline,
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- TÍTULO Y DESCRIPCIÓN ---
         Text(
             text = "¿Cuál es tu tarifa mínima?",
-            color = textDark,
+            color = cs.onBackground,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 34.sp
@@ -110,55 +107,52 @@ fun TariffConfigScreen(
 
         Text(
             text = "Ingresa el monto mínimo por el que estás dispuesto a aceptar un viaje.",
-            color = TextGray,
+            color = app.textSecondary,
             fontSize = 16.sp,
             lineHeight = 24.sp
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- CAMPO DE ENTRADA DE TEXTO ---
         OutlinedTextField(
             value = minimumTariff,
             onValueChange = { minimumTariff = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester), // 4. Conectamos el campo al FocusRequester
-            placeholder = { Text("0.00", color = Color(0xFFC2C6D6), fontSize = 18.sp) },
+                .focusRequester(focusRequester),
+            placeholder = { Text("0.00", color = app.textSecondary, fontSize = 18.sp) },
             leadingIcon = {
                 Text(
                     text = "$",
-                    color = primaryBlue,
+                    color = cs.primary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal // 5. Solo números decimales, sin sugerencias de contraseñas
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryBlue,
-                unfocusedBorderColor = Color(0xFFC2C6D6),
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedTextColor = textDark,
-                unfocusedTextColor = textDark
+                focusedBorderColor = cs.primary,
+                unfocusedBorderColor = app.outline,
+                focusedContainerColor = app.card,
+                unfocusedContainerColor = app.card,
+                focusedTextColor = app.textPrimary,
+                unfocusedTextColor = app.textPrimary,
+                cursorColor = cs.primary
             )
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- BOTÓN SIGUIENTE ---
         Button(
             onClick = { onNextClick(minimumTariff) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+            colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -176,61 +170,55 @@ fun TariffConfigScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // --- TARJETAS INFORMATIVAS INFERIORES ---
         InfoFeatureCard(
             icon = Icons.Outlined.Security,
-            iconTint = primaryBlue,
+            iconTint = cs.primary,
             title = "Datos Seguros",
-            description = "Tu información financiera se utiliza localmente para optimizar tus rutas y no se comparte con terceros.",
-            bgColor = cardBg
+            description = "Tu información financiera se utiliza localmente para optimizar tus rutas y no se comparte con terceros."
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         InfoFeatureCard(
             icon = Icons.Outlined.BarChart,
-            iconTint = Color(0xFF0F9D58),
+            iconTint = Color(0xFF4ADE80),
             title = "Cálculo Inteligente",
-            description = "Calculamos el desgaste de tu moto y el costo de combustible actual para darte números reales.",
-            bgColor = cardBg
+            description = "Calculamos el desgaste de tu moto y el costo de combustible actual para darte números reales."
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         InfoFeatureCard(
             icon = Icons.Outlined.FlashOn,
-            iconTint = TextGray,
+            iconTint = app.textSecondary,
             title = "Sin Filtros",
-            description = "Configura tus preferencias una vez y deja que aceptakm filtre las mejores ofertas para ti.",
-            bgColor = cardBg
+            description = "Configura tus preferencias una vez y deja que AceptaKm filtre las mejores ofertas para ti."
         )
 
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-// --- COMPOSABLE PARA LAS TARJETAS DE INFORMACIÓN ---
 @Composable
 fun InfoFeatureCard(
     icon: ImageVector,
     iconTint: Color,
     title: String,
-    description: String,
-    bgColor: Color
+    description: String
 ) {
+    val app = AceptaTheme.colors
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
+        colors = CardDefaults.cardColors(containerColor = app.cardAlt),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.White, CircleShape),
+                    .background(app.iconBg, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -245,7 +233,7 @@ fun InfoFeatureCard(
 
             Text(
                 text = title,
-                color = Color(0xFF0B1C30),
+                color = app.textPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -254,7 +242,7 @@ fun InfoFeatureCard(
 
             Text(
                 text = description,
-                color = Color(0xFF585F67),
+                color = app.textSecondary,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )

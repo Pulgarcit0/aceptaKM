@@ -1,16 +1,39 @@
 package com.mavacode.aceptakm.ui.overlay
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +50,38 @@ import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
 
+private data class OverlayPalette(
+    val card: Color,
+    val header: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val divider: Color,
+    val accent: Color
+)
+
+@Composable
+private fun overlayPalette(): OverlayPalette {
+    return if (isSystemInDarkTheme()) {
+        OverlayPalette(
+            card = Color(0xFF1C1F26),
+            header = Color(0xFF252A33),
+            textPrimary = Color(0xFFF3F4F6),
+            textSecondary = Color(0xFF9CA3AF),
+            divider = Color(0xFF3A404A),
+            accent = Color(0xFF6EA8FF)
+        )
+    } else {
+        OverlayPalette(
+            card = Color(0xFFFFFFFF),
+            header = Color(0xFFF8F9FA),
+            textPrimary = Color(0xFF111827),
+            textSecondary = Color(0xFF4B5563),
+            divider = Color(0xFFE5E7EB),
+            accent = Color(0xFF0052CC)
+        )
+    }
+}
+
 @Composable
 fun FloatingOverlay(
     tripData: TripData?,
@@ -36,10 +91,8 @@ fun FloatingOverlay(
     onReactivar: () -> Unit = {}
 ) {
     if (tripData != null) {
-        // Tarjeta de datos: fija, sin arrastre
         AceptaKMCard(tripData = tripData, onClose = onClose)
     } else {
-        // Oruga / manzana: se puede mover por toda la pantalla
         Box(
             modifier = Modifier.pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
@@ -99,9 +152,9 @@ fun WaitingTripCard(
 
     val textoEstado = if (capturaActiva) "Listo" else "Toca para leer"
     val colorFondo = if (capturaActiva) {
-        Color(0xFF166534).copy(alpha = 0.90f)
+        Color(0xFF166534).copy(alpha = 0.92f)
     } else {
-        Color(0xFF1A1A1A).copy(alpha = 0.85f)
+        Color(0xFF1A1A1A).copy(alpha = 0.88f)
     }
 
     Card(
@@ -124,7 +177,7 @@ fun WaitingTripCard(
             )
             Text(
                 text = textoEstado,
-                color = Color.White.copy(alpha = 0.7f),
+                color = Color.White.copy(alpha = 0.8f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -134,40 +187,34 @@ fun WaitingTripCard(
 
 @Composable
 fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
+    val colors = overlayPalette()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val cardWidth = screenWidth * 0.88f
 
     val esPeligro = tripData.sugerencia.contains("PELIGRO", ignoreCase = true)
     val zonaIcon = if (esPeligro) Icons.Default.Warning else Icons.Default.Security
-    val zonaColor = if (esPeligro) Color(0xFFDC2626) else Color(0xFF16A34A)
+    val zonaColor = if (esPeligro) Color(0xFFEF4444) else Color(0xFF22C55E)
     val zonaText = if (esPeligro) "Zona Peligrosa" else "Zona Segura"
 
     val (badgeColor, actionColor, iconRes, textoRecomendacion) = when (tripData.nivelRentabilidad) {
         NivelRentabilidad.ALTA -> Quadruple(
-            Color(0xFF16A34A), Color(0xFF16A34A), Icons.Default.CheckBox, "ACEPTAR"
+            Color(0xFF16A34A), Color(0xFF22C55E), Icons.Default.CheckBox, "ACEPTAR"
         )
         NivelRentabilidad.MEDIA -> Quadruple(
-            Color(0xFFD97706), Color(0xFFD97706), Icons.Default.Warning, "ACEPTAR CON CUIDADO"
+            Color(0xFFD97706), Color(0xFFF59E0B), Icons.Default.Warning, "ACEPTAR CON CUIDADO"
         )
         NivelRentabilidad.BAJA, NivelRentabilidad.RECHAZAR -> Quadruple(
-            Color(0xFFDC2626), Color(0xFFDC2626), Icons.Default.Cancel, "RECHAZAR"
+            Color(0xFFDC2626), Color(0xFFEF4444), Icons.Default.Cancel, "RECHAZAR"
         )
     }
-
-    val cardBackground = Color(0xFFFFFFFF)
-    val headerBackground = Color(0xFFF8F9FA)
-    val iconBlue = Color(0xFF0052CC)
-    val textPrimary = Color(0xFF111827)
-    val textSecondary = Color(0xFF4B5563)
-    val dividerColor = Color(0xFFE5E7EB)
 
     Card(
         modifier = Modifier
             .width(cardWidth)
             .padding(vertical = 12.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        colors = CardDefaults.cardColors(containerColor = colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -178,19 +225,19 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(headerBackground.copy(alpha = 0.95f))
+                        .background(colors.header)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Directions,
                         contentDescription = null,
-                        tint = iconBlue,
+                        tint = colors.accent,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = "AceptaKm",
-                        color = textPrimary,
+                        color = colors.textPrimary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 6.dp)
@@ -198,7 +245,7 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Row(
                         modifier = Modifier
-                            .background(zonaColor.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                            .background(zonaColor.copy(alpha = 0.16f), RoundedCornerShape(6.dp))
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -237,7 +284,7 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                         modifier = Modifier
                             .size(22.dp)
                             .clickable { onClose() },
-                        tint = textSecondary
+                        tint = colors.textSecondary
                     )
                 }
 
@@ -249,21 +296,21 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                 ) {
                     Text(
                         text = "GANANCIA NETA",
-                        color = textSecondary,
+                        color = colors.textSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     )
                     Text(
                         text = "$${tripData.gananciaNeta}",
-                        color = textPrimary,
+                        color = colors.textPrimary,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
                         thickness = 1.dp,
-                        color = dividerColor
+                        color = colors.divider
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -275,29 +322,35 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                             icon = Icons.AutoMirrored.Filled.Sort,
                             value = "$${tripData.pagoPorKm}/km",
                             label = "Rentabilidad",
-                            iconColor = iconBlue
+                            iconColor = colors.accent,
+                            textPrimary = colors.textPrimary,
+                            textSecondary = colors.textSecondary
                         )
-                        VerticalDivider()
+                        VerticalDivider(color = colors.divider)
                         MetricItem(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.Timer,
                             value = "${tripData.tiempoTotal} min",
                             label = "Tiempo",
-                            iconColor = iconBlue
+                            iconColor = colors.accent,
+                            textPrimary = colors.textPrimary,
+                            textSecondary = colors.textSecondary
                         )
-                        VerticalDivider()
+                        VerticalDivider(color = colors.divider)
                         MetricItem(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.MyLocation,
                             value = "${tripData.distanciaTotal} km",
                             label = "Total",
-                            iconColor = iconBlue
+                            iconColor = colors.accent,
+                            textPrimary = colors.textPrimary,
+                            textSecondary = colors.textSecondary
                         )
                     }
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
                         thickness = 1.dp,
-                        color = dividerColor
+                        color = colors.divider
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(iconRes, null, tint = actionColor, modifier = Modifier.size(18.dp))
@@ -314,13 +367,13 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp)
-                        .background(dividerColor)
+                        .background(colors.divider)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .weight(0.6f)
-                            .background(iconBlue)
+                            .background(colors.accent)
                     )
                     Box(modifier = Modifier.weight(0.4f))
                 }
@@ -335,22 +388,24 @@ private fun MetricItem(
     icon: ImageVector,
     value: String,
     label: String,
-    iconColor: Color
+    iconColor: Color,
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = iconColor, modifier = Modifier.size(18.dp))
-        Text(value, color = Color(0xFF111827), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Text(label, color = Color(0xFF4B5563), fontSize = 11.sp)
+        Text(value, color = textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = textSecondary, fontSize = 11.sp)
     }
 }
 
 @Composable
-private fun VerticalDivider() {
+private fun VerticalDivider(color: Color) {
     Box(
         modifier = Modifier
             .width(1.dp)
             .height(36.dp)
-            .background(Color(0xFFE5E7EB))
+            .background(color)
     )
 }
 

@@ -90,11 +90,22 @@ fun crearUsuarioEnFirestore(onComplete: (Boolean) -> Unit) {
 
     val db = FirebaseFirestore.getInstance()
     val usuarioRef = db.collection("Usuarios").document(currentUser.uid)
+    val nombre = currentUser.displayName?.trim().orEmpty().ifBlank { "Socio" }
+
+    val datosPerfil = mapOf(
+        "uid" to currentUser.uid,
+        "nombre" to nombre,
+        "email" to (currentUser.email ?: ""),
+        "telefono" to (currentUser.phoneNumber ?: ""),
+        "fotoUrl" to (currentUser.photoUrl?.toString() ?: "")
+    )
 
     usuarioRef.get()
         .addOnSuccessListener { document ->
             if (document.exists()) {
-                onComplete(true)
+                usuarioRef.set(datosPerfil, SetOptions.merge())
+                    .addOnSuccessListener { onComplete(true) }
+                    .addOnFailureListener { onComplete(true) }
                 return@addOnSuccessListener
             }
 
@@ -103,22 +114,12 @@ fun crearUsuarioEnFirestore(onComplete: (Boolean) -> Unit) {
                 time = fechaActual
                 add(Calendar.DAY_OF_YEAR, 7)
             }
-            val fechaVencimiento = calendar.time
 
-            val nuevoUsuario = mapOf(
-                "uid" to currentUser.uid,
-                "nombre" to (currentUser.displayName ?: "Socio"),
-                "email" to (currentUser.email ?: ""),
-                "telefono" to (currentUser.phoneNumber ?: ""),
-                "fotoUrl" to (currentUser.photoUrl?.toString() ?: ""),
+            val nuevoUsuario = datosPerfil + mapOf(
                 "fechaRegistro" to fechaActual,
-                "fechaVencimiento" to fechaVencimiento,
+                "fechaVencimiento" to calendar.time,
                 "tipoPlan" to "prueba",
-                "premium" to false,
-                "tarifaMinima" to 25.0,
-                "retencionImpuestos" to 10.1,
-                "distanciaMaxima" to 12.0,
-                "gananciaNetaPorKm" to 7.0
+                "premium" to false
             )
 
             usuarioRef.set(nuevoUsuario)
@@ -129,7 +130,6 @@ fun crearUsuarioEnFirestore(onComplete: (Boolean) -> Unit) {
             onComplete(false)
         }
 }
-
 fun actualizarConfiguracionEnFirestore(
     tarifaMin: Double,
     impuesto: Double,

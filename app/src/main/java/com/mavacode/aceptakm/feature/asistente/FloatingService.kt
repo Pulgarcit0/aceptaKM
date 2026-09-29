@@ -25,6 +25,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.mavacode.aceptakm.ui.overlay.FloatingOverlay
+import com.mavacode.aceptakm.ui.screens.OverlayPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -45,7 +46,6 @@ class FloatingService : LifecycleService() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var composeView: ComposeView
-    private lateinit var layoutParams: WindowManager.LayoutParams
     private val customLifecycleOwner = ServiceLifecycleOwner()
     private val currentTripState = mutableStateOf<TripData?>(null)
     private val capturaActivaState = mutableStateOf(false)
@@ -72,8 +72,6 @@ class FloatingService : LifecycleService() {
                     currentTripState.value = viajeDetectado
                     mainHandler.removeCallbacks(resetRunnable)
                     mainHandler.postDelayed(resetRunnable, 8_000)
-
-                    // Tarjeta de datos → siempre centro arriba (fija)
                     centrarVentanaArriba()
                 } else if (currentTripState.value != null) {
                     currentTripState.value = null
@@ -94,6 +92,13 @@ class FloatingService : LifecycleService() {
             this,
             internalWakeUpReceiver,
             IntentFilter(ACTION_DESPERTAR),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+
+        ContextCompat.registerReceiver(
+            this,
+            alphaReceiver,
+            IntentFilter(OverlayPrefs.ACTION_ALPHA),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
 
@@ -146,6 +151,16 @@ class FloatingService : LifecycleService() {
         return START_STICKY
     }
 
+    private fun aplicarAlpha() {
+        if (!::windowParams.isInitialized || !::composeView.isInitialized) return
+        windowParams.alpha = OverlayPrefs.getAlpha(this)
+        try {
+            windowManager.updateViewLayout(composeView, windowParams)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error aplicando alpha: ${e.message}")
+        }
+    }
+
     private fun centrarVentanaArriba() {
         mainHandler.post {
             try {
@@ -180,6 +195,7 @@ class FloatingService : LifecycleService() {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             x = 0
             y = 30
+            alpha = OverlayPrefs.getAlpha(this@FloatingService)
         }
 
         composeView = ComposeView(this).apply {
@@ -251,6 +267,7 @@ class FloatingService : LifecycleService() {
 
         try { unregisterReceiver(internalWakeUpReceiver) } catch (_: Exception) {}
         try { unregisterReceiver(systemScreenReceiver) } catch (_: Exception) {}
+        try { unregisterReceiver(alphaReceiver) } catch (_: Exception) {}
         try {
             if (::composeView.isInitialized) {
                 windowManager.removeView(composeView)
@@ -272,6 +289,14 @@ class FloatingService : LifecycleService() {
                     ocrManager.isScannerPaused = true
                     Log.d(TAG, "😴 Modo ahorro: OCR en pausa")
                 }
+            }
+        }
+    }
+
+    private val alphaReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == OverlayPrefs.ACTION_ALPHA) {
+                mainHandler.post { aplicarAlpha() }
             }
         }
     }

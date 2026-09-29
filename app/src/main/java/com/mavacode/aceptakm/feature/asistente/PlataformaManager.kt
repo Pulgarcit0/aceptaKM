@@ -12,24 +12,25 @@ object PlataformaManager {
 
     private const val DEFAULT_PLATAFORMA = "Didi Moto/Auto"
 
-    /** Lista canónica (mismo orden/nombres que Switch + Parser + Listener) */
     val TODAS_LAS_PLATAFORMAS = listOf(
         "Didi Moto/Auto",
         "Uber Moto/Auto",
-        "inDrive",
         "Didi Food",
-        "Uber Eats",
-        "Rappi",
-        "Cabify",
-        "Lalamove"
+        "Uber Eats"
+        // "inDrive",
+        // "Rappi",
+        // "Cabify",
+        // "Lalamove"
     )
+
+    private val PERMITIDAS = TODAS_LAS_PLATAFORMAS.toSet()
 
     // ---------- Multi-select ----------
 
     fun guardarPlataformasActivas(context: Context, plataformas: Set<String>) {
+        val limpias = plataformas.filter { it in PERMITIDAS }.toSet()
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
-            // toSet() evita el bug de SharedPreferences con la misma instancia del Set
-            putStringSet(KEY_PLATAFORMAS, plataformas.toSet())
+            putStringSet(KEY_PLATAFORMAS, limpias.toSet())
         }
     }
 
@@ -38,19 +39,24 @@ object PlataformaManager {
         val plataformas = prefs.getStringSet(KEY_PLATAFORMAS, null)
 
         if (plataformas != null && plataformas.isNotEmpty()) {
-            return plataformas
+            val limpias = plataformas.filter { it in PERMITIDAS }.toSet()
+            if (limpias.size != plataformas.size) {
+                guardarPlataformasActivas(context, limpias)
+            }
+            return limpias
         }
 
-        // Migración desde clave vieja (1 sola plataforma)
         val vieja = prefs.getString(KEY_PLATAFORMA_VIEJA, null)
-        if (vieja != null) {
+        if (vieja != null && vieja in PERMITIDAS) {
             val migrado = setOf(vieja)
             guardarPlataformasActivas(context, migrado)
             prefs.edit { remove(KEY_PLATAFORMA_VIEJA) }
             return migrado
         }
+        if (vieja != null) {
+            prefs.edit { remove(KEY_PLATAFORMA_VIEJA) }
+        }
 
-        // Nada activo por defecto: el usuario elige
         return emptySet()
     }
 
@@ -74,22 +80,22 @@ object PlataformaManager {
     // ---------- Ancla / default para Home ----------
 
     fun guardarPlataformaDefault(context: Context, plataforma: String) {
+        val valor = if (plataforma in PERMITIDAS) plataforma else DEFAULT_PLATAFORMA
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
-            putString(KEY_PLATAFORMA_DEFAULT, plataforma)
+            putString(KEY_PLATAFORMA_DEFAULT, valor)
         }
     }
 
     fun obtenerPlataformaDefault(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val guardada = prefs.getString(KEY_PLATAFORMA_DEFAULT, null)
-        if (!guardada.isNullOrBlank()) return guardada
+        if (!guardada.isNullOrBlank() && guardada in PERMITIDAS) return guardada
 
-        // Si no hay ancla, usa la primera activa o DiDi
         val activas = obtenerPlataformasActivas(context)
         return activas.firstOrNull() ?: DEFAULT_PLATAFORMA
     }
 
-    // ---------- Compatibilidad (código viejo) ----------
+    // ---------- Compatibilidad ----------
 
     fun obtenerPlataformaActiva(context: Context): String? {
         return obtenerPlataformasActivas(context).firstOrNull()
@@ -97,7 +103,7 @@ object PlataformaManager {
     }
 
     fun guardarPlataformaActiva(context: Context, plataforma: String?) {
-        if (plataforma != null) {
+        if (plataforma != null && plataforma in PERMITIDAS) {
             guardarPlataformasActivas(context, setOf(plataforma))
             guardarPlataformaDefault(context, plataforma)
         } else {

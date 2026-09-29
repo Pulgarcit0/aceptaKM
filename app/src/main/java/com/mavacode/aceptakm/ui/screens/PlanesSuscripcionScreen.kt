@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mavacode.aceptakm.data.BillingManager
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,11 +42,12 @@ fun PlanesSuscripcionScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val coroutineScope = rememberCoroutineScope()
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
     var planSeleccionado by remember { mutableStateOf("mensual") }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Datos reales desde Firebase
     var currentPlan by remember { mutableStateOf<String?>(null) }
     var oldPurchaseToken by remember { mutableStateOf<String?>(null) }
     var fechaVencimiento by remember { mutableStateOf<Date?>(null) }
@@ -86,16 +87,12 @@ fun PlanesSuscripcionScreen(
                     currentPlan = document.getString("tipoPlan")
                     oldPurchaseToken = document.getString("purchaseToken")
                     fechaVencimiento = document.getTimestamp("fechaVencimiento")?.toDate()
-
-                    // Si todavía tiene plan anual activo, preseleccionamos anual
                     if (currentPlan == "anual") {
                         planSeleccionado = "anual"
                     }
                     cargandoDatos = false
                 }
-                .addOnFailureListener {
-                    cargandoDatos = false
-                }
+                .addOnFailureListener { cargandoDatos = false }
         } else {
             cargandoDatos = false
         }
@@ -105,7 +102,6 @@ fun PlanesSuscripcionScreen(
         onDispose { billingManager.cerrar() }
     }
 
-    // ¿El plan actual todavía está vigente?
     val planActivo = remember(currentPlan, fechaVencimiento) {
         val fecha = fechaVencimiento
         when {
@@ -115,11 +111,9 @@ fun PlanesSuscripcionScreen(
         }
     }
 
-    // Solo es cambio de plan si todavía tiene una suscripción activa
     val esMismoPlan = currentPlan == planSeleccionado && planActivo
     val esCambioDePlan = planActivo && currentPlan != planSeleccionado
 
-    // ======== DIÁLOGO DE CONFIRMACIÓN DE CAMBIO ========
     if (mostrarDialogoConfirmacion) {
         val esUpgrade = planSeleccionado == "anual"
 
@@ -129,7 +123,7 @@ fun PlanesSuscripcionScreen(
                 Text(
                     text = "Confirmar Cambio de Plan",
                     fontWeight = FontWeight.Bold,
-                    color = textDark
+                    color = app.textPrimary
                 )
             },
             text = {
@@ -141,7 +135,7 @@ fun PlanesSuscripcionScreen(
                             "Al cambiar al plan Mensual, seguirás disfrutando de tu plan Anual hasta que termine el periodo ya pagado. Después comenzarás a pagar la tarifa mensual."
                         },
                         fontSize = 14.sp,
-                        color = TextGray,
+                        color = app.textSecondary,
                         lineHeight = 20.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -164,9 +158,9 @@ fun PlanesSuscripcionScreen(
                     onClick = {
                         mostrarDialogoConfirmacion = false
                         if (activity != null) {
-                            val productId = if (planSeleccionado == "mensual") "aceptakm_mensual" else "aceptakm_anual"
+                            val productId =
+                                if (planSeleccionado == "mensual") "aceptakm_mensual" else "aceptakm_anual"
                             isLoading = true
-                            // Solo mandamos el token viejo si realmente es un cambio de plan activo
                             billingManager.lanzarCobroSuscripcion(
                                 activity = activity,
                                 productId = productId,
@@ -174,17 +168,17 @@ fun PlanesSuscripcionScreen(
                             )
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                 ) {
                     Text("Aceptar y Continuar")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoConfirmacion = false }) {
-                    Text("Cancelar", color = Color.Gray)
+                    Text("Cancelar", color = app.textSecondary)
                 }
             },
-            containerColor = Color.White
+            containerColor = app.card
         )
     }
 
@@ -198,8 +192,9 @@ fun PlanesSuscripcionScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = bgSurface,
-                    titleContentColor = textDark
+                    containerColor = cs.background,
+                    titleContentColor = cs.onBackground,
+                    navigationIconContentColor = cs.onBackground
                 )
             )
         },
@@ -207,7 +202,7 @@ fun PlanesSuscripcionScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(cs.surface)
                     .padding(16.dp)
                     .navigationBarsPadding()
             ) {
@@ -218,13 +213,13 @@ fun PlanesSuscripcionScreen(
                         if (esCambioDePlan) {
                             mostrarDialogoConfirmacion = true
                         } else {
-                            // Compra nueva o reactivación de plan vencido
-                            val productId = if (planSeleccionado == "mensual") "aceptakm_mensual" else "aceptakm_anual"
+                            val productId =
+                                if (planSeleccionado == "mensual") "aceptakm_mensual" else "aceptakm_anual"
                             isLoading = true
                             billingManager.lanzarCobroSuscripcion(
                                 activity = activity,
                                 productId = productId,
-                                oldPurchaseToken = null   // siempre null cuando el plan ya venció
+                                oldPurchaseToken = null
                             )
                         }
                     },
@@ -234,13 +229,13 @@ fun PlanesSuscripcionScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (esMismoPlan) Color.Gray else primaryBlue
+                        containerColor = if (esMismoPlan) app.textSecondary else cs.primary
                     )
                 ) {
                     if (isLoading || cargandoDatos) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = Color.White,
+                            color = cs.onPrimary,
                             strokeWidth = 2.dp
                         )
                     } else if (esMismoPlan) {
@@ -259,7 +254,7 @@ fun PlanesSuscripcionScreen(
                 }
             }
         },
-        containerColor = bgSurface
+        containerColor = cs.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -282,7 +277,7 @@ fun PlanesSuscripcionScreen(
                 text = "Desbloquea todo el poder",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = textDark,
+                color = cs.onBackground,
                 textAlign = TextAlign.Center
             )
 
@@ -291,7 +286,7 @@ fun PlanesSuscripcionScreen(
             Text(
                 text = "Disfruta de 7 días gratis en tu plan mensual. Filtros ilimitados y cálculo de ganancias en tiempo real.",
                 fontSize = 14.sp,
-                color = TextGray,
+                color = app.textSecondary,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
@@ -304,7 +299,6 @@ fun PlanesSuscripcionScreen(
                 period = "/ mes",
                 isSelected = planSeleccionado == "mensual",
                 onClick = { planSeleccionado = "mensual" },
-                primaryBlue = primaryBlue,
                 badge = "PRUEBA GRATIS"
             )
 
@@ -316,7 +310,6 @@ fun PlanesSuscripcionScreen(
                 period = "/ año",
                 isSelected = planSeleccionado == "anual",
                 onClick = { planSeleccionado = "anual" },
-                primaryBlue = primaryBlue,
                 badge = "MEJOR VALOR"
             )
 
@@ -337,20 +330,22 @@ fun PlanCard(
     period: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    primaryBlue: Color,
     badge: String? = null
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) primaryBlue.copy(alpha = 0.05f) else Color.White
+            containerColor = if (isSelected) cs.primary.copy(alpha = 0.12f) else app.card
         ),
         border = BorderStroke(
             width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) primaryBlue else Color(0xFFE5E7EB)
+            color = if (isSelected) cs.primary else app.outline
         )
     ) {
         Row(
@@ -363,7 +358,7 @@ fun PlanCard(
                 modifier = Modifier
                     .size(24.dp)
                     .background(
-                        color = if (isSelected) primaryBlue else Color.Transparent,
+                        color = if (isSelected) cs.primary else Color.Transparent,
                         shape = CircleShape
                     )
                     .padding(2.dp),
@@ -373,15 +368,15 @@ fun PlanCard(
                     Icon(
                         Icons.Default.Check,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = cs.onPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.White, CircleShape)
-                            .border(2.dp, Color(0xFFC2C6D6), CircleShape)
+                            .background(app.card, CircleShape)
+                            .border(2.dp, app.outline, CircleShape)
                     )
                 }
             }
@@ -394,7 +389,7 @@ fun PlanCard(
                         text = title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Color(0xFF0B1C30)
+                        color = app.textPrimary
                     )
                     if (badge != null) {
                         Spacer(modifier = Modifier.width(8.dp))
@@ -418,12 +413,12 @@ fun PlanCard(
                         text = price,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
-                        color = primaryBlue
+                        color = cs.primary
                     )
                     Text(
                         text = " $period",
                         fontSize = 14.sp,
-                        color = Color(0xFF585F67),
+                        color = app.textSecondary,
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
@@ -434,6 +429,7 @@ fun PlanCard(
 
 @Composable
 fun BeneficioRow(texto: String) {
+    val app = AceptaTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -443,10 +439,10 @@ fun BeneficioRow(texto: String) {
         Icon(
             Icons.Default.Check,
             contentDescription = null,
-            tint = Color(0xFF0F9D58),
+            tint = Color(0xFF4ADE80),
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = texto, fontSize = 14.sp, color = Color(0xFF585F67))
+        Text(text = texto, fontSize = 14.sp, color = app.textSecondary)
     }
 }

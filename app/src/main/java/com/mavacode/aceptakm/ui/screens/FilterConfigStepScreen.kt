@@ -13,16 +13,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 
 @Composable
 fun FilterConfigStepScreen(
-    stepNumber: Int, // Pasas 2, 3 o 4
+    stepNumber: Int,
     title: String,
     description: String,
     placeholder: String,
@@ -31,19 +30,17 @@ fun FilterConfigStepScreen(
     onNextClick: (String) -> Unit
 ) {
     var inputValue by remember { mutableStateOf("") }
-
-
-    // Calculamos el progreso basado en el paso (Paso 2 = 50%, Paso 3 = 75%, Paso 4 = 100%)
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
     val progress = stepNumber / 4f
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(cs.background)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
-        // --- CABECERA Y BARRA DE PROGRESO ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -53,20 +50,20 @@ fun FilterConfigStepScreen(
                 Icon(
                     imageVector = Icons.Outlined.TwoWheeler,
                     contentDescription = "Logo",
-                    tint = primaryBlue,
+                    tint = cs.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "aceptakm",
-                    color = primaryBlue,
+                    text = "AceptaKm",
+                    color = cs.primary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Text(
                 text = "Paso $stepNumber de 4",
-                color = TextGray,
+                color = app.textSecondary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -74,22 +71,20 @@ fun FilterConfigStepScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Barra de progreso dinámica
         LinearProgressIndicator(
             progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(4.dp),
-            color = primaryBlue,
-            trackColor = Color(0xFFE5E7EB),
+            color = cs.primary,
+            trackColor = app.outline,
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- TÍTULO Y DESCRIPCIÓN DINÁMICOS ---
         Text(
             text = title,
-            color = textDark,
+            color = cs.onBackground,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 34.sp
@@ -99,24 +94,23 @@ fun FilterConfigStepScreen(
 
         Text(
             text = description,
-            color = TextGray,
+            color = app.textSecondary,
             fontSize = 16.sp,
             lineHeight = 24.sp
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- CAMPO DE ENTRADA DE TEXTO ---
         OutlinedTextField(
             value = inputValue,
             onValueChange = { inputValue = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(placeholder, color = Color(0xFFC2C6D6), fontSize = 18.sp) },
+            placeholder = { Text(placeholder, color = app.textSecondary, fontSize = 18.sp) },
             leadingIcon = if (prefixText.isNotEmpty()) {
                 {
                     Text(
                         text = prefixText,
-                        color = primaryBlue,
+                        color = cs.primary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 8.dp)
@@ -127,7 +121,7 @@ fun FilterConfigStepScreen(
                 {
                     Text(
                         text = suffixText,
-                        color = TextGray,
+                        color = app.textSecondary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(end = 16.dp)
@@ -138,25 +132,25 @@ fun FilterConfigStepScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = primaryBlue,
-                unfocusedBorderColor = Color(0xFFC2C6D6),
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedTextColor = textDark,
-                unfocusedTextColor = textDark
+                focusedBorderColor = cs.primary,
+                unfocusedBorderColor = app.outline,
+                focusedContainerColor = app.card,
+                unfocusedContainerColor = app.card,
+                focusedTextColor = app.textPrimary,
+                unfocusedTextColor = app.textPrimary,
+                cursorColor = cs.primary
             )
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- BOTÓN SIGUIENTE / FINALIZAR ---
         Button(
             onClick = { onNextClick(inputValue) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+            colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

@@ -9,26 +9,32 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.DeliveryDining
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.LocalTaxi
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.ScreenShare
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mavacode.aceptakm.data.remote.EstadoSuscripcion
 import com.mavacode.aceptakm.data.remote.observarEstadoSuscripcion
 import com.mavacode.aceptakm.feature.asistente.FloatingService
 import com.mavacode.aceptakm.feature.asistente.PlataformaManager
 import com.mavacode.aceptakm.feature.permisos.PermisosManager
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -41,6 +47,8 @@ fun SwitchScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
     var plataformasSeleccionadas by remember {
         mutableStateOf(PlataformaManager.obtenerPlataformasActivas(context).toMutableSet())
@@ -52,11 +60,9 @@ fun SwitchScreen(
 
     var mostrarInstrucciones by remember { mutableStateOf(false) }
 
-    // Pendiente hasta que el usuario acepte compartir pantalla
     var pendienteActivacion by remember { mutableStateOf<Set<String>?>(null) }
     var esperandoCaptura by remember { mutableStateOf(false) }
 
-    // --- PERMISOS ---
     var tieneSuperposicion by remember { mutableStateOf(PermisosManager.tienePermisoSuperposicion(context)) }
     var tieneBateria by remember { mutableStateOf(PermisosManager.tienePermisoBateria(context)) }
     var tieneNotificaciones by remember { mutableStateOf(PermisosManager.tienePermisoNotificaciones(context)) }
@@ -70,15 +76,13 @@ fun SwitchScreen(
                 tieneNotificaciones = PermisosManager.tienePermisoNotificaciones(context)
                 tieneBateria = PermisosManager.tienePermisoBateria(context)
                 scope.launch {
-                    kotlinx.coroutines.delay(400)
+                    delay(400)
                     tieneBateria = PermisosManager.tienePermisoBateria(context)
                 }
 
-                // Volvió del diálogo de captura
                 if (esperandoCaptura) {
                     scope.launch {
-                        // Dar tiempo a que el padre arranque el servicio si aceptó
-                        kotlinx.coroutines.delay(500)
+                        delay(500)
                         val pendiente = pendienteActivacion
                         if (FloatingService.isRunning || isServiceRunning) {
                             if (pendiente != null) {
@@ -93,7 +97,6 @@ fun SwitchScreen(
                                 }
                             }
                         } else {
-                            // Canceló compartir pantalla → switch vuelve a OFF
                             pendienteActivacion = null
                             Toast.makeText(
                                 context,
@@ -111,7 +114,6 @@ fun SwitchScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Si el servicio arranca mientras estamos esperando, confirma
     LaunchedEffect(isServiceRunning) {
         if (isServiceRunning && esperandoCaptura) {
             val pendiente = pendienteActivacion
@@ -130,7 +132,6 @@ fun SwitchScreen(
 
     val permisosCompletos = tieneSuperposicion && tieneBateria && tieneNotificaciones
 
-    // --- SUSCRIPCIÓN ---
     var estadoSuscripcion by remember { mutableStateOf(EstadoSuscripcion()) }
     var cargandoSuscripcion by remember { mutableStateOf(true) }
 
@@ -148,35 +149,36 @@ fun SwitchScreen(
         plataformasSeleccionadas.contains(it)
     }
 
-    // --- DIÁLOGO DE CAPTURA ---
     if (mostrarInstrucciones) {
         val pendientes = pendienteActivacion.orEmpty()
         val multiples = pendientes.size > 1
         AlertDialog(
             onDismissRequest = {
-                // Cerrar sin activar
                 mostrarInstrucciones = false
                 pendienteActivacion = null
             },
-            icon = { Icon(Icons.Default.ScreenShare, contentDescription = null, tint = PrimaryColor) },
+            icon = { Icon(Icons.Default.ScreenShare, contentDescription = null, tint = cs.primary) },
             title = {
                 Text(
                     text = "Instrucción Importante",
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = app.textPrimary
                 )
             },
             text = {
                 if (multiples) {
                     Text(
                         "Has elegido todas las plataformas.\n\nCuando Android te pregunte, elige:\n\n👉 Compartir Toda la Pantalla\n\nSi eliges una sola app, el asistente no podrá leer las demás.",
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = app.textSecondary
                     )
                 } else {
                     val appUnica = pendientes.firstOrNull() ?: "tu app de viajes"
                     Text(
                         "Has elegido solo $appUnica.\n\nCuando Android te pregunte, te recomendamos:\n\n👉 Compartir una sola App\n(y seleccionas $appUnica)\n\nAsí ahorras batería y cuidas tu privacidad.",
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = app.textSecondary
                     )
                 }
             },
@@ -187,7 +189,7 @@ fun SwitchScreen(
                         esperandoCaptura = true
                         onSolicitarPermiso()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                 ) {
                     Text("Entendido, Iniciar")
                 }
@@ -199,17 +201,17 @@ fun SwitchScreen(
                         pendienteActivacion = null
                     }
                 ) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = app.textSecondary)
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = app.card
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(cs.background)
             .padding(horizontal = 24.dp, vertical = 32.dp)
             .verticalScroll(rememberScrollState())
     ) {
@@ -217,13 +219,13 @@ fun SwitchScreen(
             text = "Plataformas de Viaje",
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
-            color = OnSurfaceColor
+            color = cs.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Activa Todas, o elige una sola plataforma. El ancla marca cuál se muestra como default en Home.",
             fontSize = 16.sp,
-            color = OnSurfaceVariantColor,
+            color = app.textSecondary,
             lineHeight = 24.sp
         )
         Spacer(modifier = Modifier.height(32.dp))
@@ -231,7 +233,7 @@ fun SwitchScreen(
         when {
             cargandoSuscripcion -> {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryColor)
+                    CircularProgressIndicator(color = cs.primary)
                 }
             }
 
@@ -284,14 +286,13 @@ fun SwitchScreen(
                     PlataformaCardHtml(
                         nombre = "Todas las plataformas",
                         icono = Icons.Default.Apps,
-                        colorTema = PrimaryColor,
+                        colorTema = cs.primary,
                         isActivo = todasActivas,
                         switchEnabled = true,
                         mostrarAncla = false,
                         onCheckedChange = { activo ->
                             if (activo) {
                                 if (isServiceRunning) {
-                                    // Ya hay captura: solo cambiar plataformas
                                     PlataformaManager.activarTodas(context)
                                     plataformasSeleccionadas =
                                         PlataformaManager.TODAS_LAS_PLATAFORMAS.toMutableSet()
@@ -301,7 +302,6 @@ fun SwitchScreen(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 } else {
-                                    // Aún no hay captura → NO guardar hasta que acepte
                                     pendienteActivacion =
                                         PlataformaManager.TODAS_LAS_PLATAFORMAS.toSet()
                                     mostrarInstrucciones = true
@@ -326,13 +326,9 @@ fun SwitchScreen(
 
                     val plataformasData = listOf(
                         Triple("Didi Moto/Auto", Icons.Default.DirectionsCar, Color(0xFFFF7D00)),
-                        Triple("Uber Moto/Auto", Icons.Default.LocalTaxi, Color(0xFF000000)),
-                        Triple("inDrive", Icons.Default.ElectricRickshaw, Color(0xFF00D166)),
+                        Triple("Uber Moto/Auto", Icons.Default.LocalTaxi, Color(0xFF9CA3AF)),
                         Triple("Didi Food", Icons.Default.Restaurant, Color(0xFFFF7D00)),
-                        Triple("Uber Eats", Icons.Default.DeliveryDining, Color(0xFF06C167)),
-                        Triple("Rappi", Icons.Default.TwoWheeler, Color(0xFFFF441F)),
-                        Triple("Cabify", Icons.Default.AirportShuttle, Color(0xFF7145D6)),
-                        Triple("Lalamove", Icons.Default.LocalShipping, Color(0xFFF15A24))
+                        Triple("Uber Eats", Icons.Default.DeliveryDining, Color(0xFF06C167))
                     )
 
                     plataformasData.forEach { (nombre, icono, color) ->
@@ -367,7 +363,6 @@ fun SwitchScreen(
 
                                 if (activo) {
                                     if (isServiceRunning) {
-                                        // Servicio ya corre: cambiar a esta sola app
                                         val nuevo = setOf(nombre)
                                         PlataformaManager.guardarPlataformasActivas(context, nuevo)
                                         PlataformaManager.guardarPlataformaDefault(context, nombre)
@@ -379,7 +374,6 @@ fun SwitchScreen(
                                             Toast.LENGTH_LONG
                                         ).show()
                                     } else {
-                                        // Primera activación: esperar captura
                                         pendienteActivacion = setOf(nombre)
                                         mostrarInstrucciones = true
                                     }

@@ -34,7 +34,9 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mavacode.aceptakm.feature.asistente.FloatingService
-import com.mavacode.aceptakm.ui.theme.*
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
+import com.mavacode.aceptakm.ui.theme.TextOrangeColor
+import com.mavacode.aceptakm.ui.theme.TextRedColor
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -49,8 +51,9 @@ fun SettingsScreen(
     onHelpClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
 
-    // 1. ESTADOS
     var userName by remember { mutableStateOf("Cargando perfil...") }
     var userPhotoUrl by remember { mutableStateOf<String?>(null) }
     var calificacionMostrada by remember { mutableStateOf("4.95") }
@@ -61,23 +64,30 @@ fun SettingsScreen(
     var diasRestantes by remember { mutableStateOf(0) }
     var tieneAcceso by remember { mutableStateOf(false) }
 
-    // 2. CARGAR DATOS
     LaunchedEffect(Unit) {
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
-            userName = "Socio"
+            userName = "Conductor AceptaKm"
             tipoPlan = "gratis"
             return@LaunchedEffect
         }
 
-        userName = currentUser.displayName ?: "Socio"
         userPhotoUrl = currentUser.photoUrl?.toString()
+        userName = currentUser.displayName?.trim().orEmpty().ifBlank { "Cargando perfil..." }
 
         FirebaseFirestore.getInstance()
             .collection("Usuarios")
             .document(currentUser.uid)
             .get()
             .addOnSuccessListener { document ->
+                val nombreFirestore = document.getString("nombre")?.trim().orEmpty()
+                val nombreAuth = currentUser.displayName?.trim().orEmpty()
+                userName = when {
+                    nombreFirestore.isNotBlank() -> nombreFirestore
+                    nombreAuth.isNotBlank() -> nombreAuth
+                    else -> "Conductor AceptaKm"
+                }
+
                 if (!document.exists()) {
                     tipoPlan = "gratis"
                     return@addOnSuccessListener
@@ -105,12 +115,12 @@ fun SettingsScreen(
                 tieneAcceso = esPremium || (tipoPlan == "prueba" && diasRestantes > 0)
             }
             .addOnFailureListener {
+                userName = currentUser.displayName?.trim().orEmpty().ifBlank { "Conductor AceptaKm" }
                 tipoPlan = "gratis"
                 tieneAcceso = false
             }
     }
 
-    // 3. TEXTO DE LA TARJETA
     val tituloMembresia: String
     val mensajeMembresia: String
     val colorMembresia: Color
@@ -120,7 +130,7 @@ fun SettingsScreen(
         esPremium -> {
             tituloMembresia = "MEMBRESÍA PREMIUM"
             mensajeMembresia = "Próxima renovación: $fechaVencimientoTexto"
-            colorMembresia = PrimaryColor
+            colorMembresia = cs.primary
             textoBoton = "Gestionar Suscripción"
         }
         tipoPlan == "prueba" && diasRestantes > 0 -> {
@@ -132,7 +142,7 @@ fun SettingsScreen(
         tipoPlan == "cargando" -> {
             tituloMembresia = "VERIFICANDO PLAN..."
             mensajeMembresia = "Consultando estado de tu cuenta."
-            colorMembresia = Color.Gray
+            colorMembresia = app.textSecondary
             textoBoton = "Cargando..."
         }
         else -> {
@@ -146,13 +156,12 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(cs.background)
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- SECCIÓN DE PERFIL ---
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -163,7 +172,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(Color.LightGray),
+                    .background(cs.surfaceVariant),
                 contentScale = ContentScale.Crop,
                 fallback = rememberVectorPainter(Icons.Default.AccountCircle),
                 error = rememberVectorPainter(Icons.Default.AccountCircle)
@@ -174,13 +183,13 @@ fun SettingsScreen(
                     text = userName,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OnSurfaceColor
+                    color = cs.onBackground
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Star,
                         contentDescription = "Calificación",
-                        tint = PrimaryColor,
+                        tint = cs.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -188,13 +197,13 @@ fun SettingsScreen(
                         text = calificacionMostrada,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = PrimaryColor
+                        color = cs.primary
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "(Calificación)",
                         fontSize = 14.sp,
-                        color = OnSurfaceVariantColor
+                        color = app.textSecondary
                     )
                 }
             }
@@ -202,11 +211,10 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- TARJETA SUSCRIPCIÓN DINÁMICA ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackgroundColor),
+            colors = CardDefaults.cardColors(containerColor = app.card),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -231,7 +239,7 @@ fun SettingsScreen(
                     text = mensajeMembresia,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = OnSurfaceColor
+                    color = app.textPrimary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -244,7 +252,10 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colorMembresia)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorMembresia,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text(text = textoBoton, fontSize = 16.sp)
                 }
@@ -253,11 +264,10 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- TARJETA RECOMENDAR ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = LightBlueCardColor),
+            colors = CardDefaults.cardColors(containerColor = app.cardAlt),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
@@ -265,13 +275,13 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .size(40.dp)
-                            .background(Color.White, CircleShape),
+                            .background(app.iconBg, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.CardGiftcard,
                             contentDescription = null,
-                            tint = Color(0xFF057A55)
+                            tint = Color(0xFF4ADE80)
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
@@ -279,14 +289,14 @@ fun SettingsScreen(
                         text = "Recomendar Aplicación",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = OnSurfaceColor
+                        color = app.textPrimary
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Invita a tus amigos a usar aceptakm y obtén descuentos exclusivos en tu próxima renovación.",
+                    text = "Invita a tus amigos a usar AceptaKm y obtén descuentos exclusivos en tu próxima renovación.",
                     fontSize = 14.sp,
-                    color = OnSurfaceVariantColor,
+                    color = app.textSecondary,
                     lineHeight = 20.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -295,7 +305,10 @@ fun SettingsScreen(
                     modifier = Modifier.clickable {
                         val shareIntent = Intent().apply {
                             action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "¡Prueba aceptakm! La mejor herramienta para optimizar tus viajes. Descárgala ya.")
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "¡Prueba AceptaKm! La mejor herramienta para optimizar tus viajes. Descárgala ya."
+                            )
                             type = "text/plain"
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Compartir con..."))
@@ -304,7 +317,7 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Outlined.Share,
                         contentDescription = null,
-                        tint = PrimaryColor,
+                        tint = cs.primary,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -312,7 +325,7 @@ fun SettingsScreen(
                         text = "Compartir Código",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = PrimaryColor
+                        color = cs.primary
                     )
                 }
             }
@@ -320,7 +333,6 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- AJUSTES FUNCIONALES ---
         SettingsSection(
             items = listOf(
                 SettingsItem("Notificaciones", Icons.Outlined.Notifications) {
@@ -347,25 +359,18 @@ fun SettingsScreen(
                 },
                 SettingsItem("Términos y Condiciones", Icons.Outlined.Description) {
                     val url = "https://sites.google.com/d/1N_CkqobmSghpmG-DuonFwEreDTtXeDF9/p/1eXK4EwRZenuxm67aNoHJByWykUcI0n_8/edit"
-                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(webIntent)
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 }
             )
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- CERRAR SESIÓN ---
         OutlinedButton(
             onClick = {
-                // 1. Matar el asistente flotante en Android
                 val stopIntent = Intent(context, FloatingService::class.java)
                 context.stopService(stopIntent)
-
-                // 2. Avisarle a la interfaz (Compose) que ya está apagado
                 onSetServiceRunning(false)
-
-                // 3. Desconectar Firebase y salir
                 FirebaseAuth.getInstance().signOut()
                 onLogoutClick()
             },
@@ -373,7 +378,7 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, Color(0xFFD1D5DB)),
+            border = BorderStroke(1.dp, app.outline),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = TextRedColor)
         ) {
             Icon(
@@ -397,10 +402,12 @@ data class SettingsItem(
 
 @Composable
 fun SettingsSection(items: List<SettingsItem>) {
+    val app = AceptaTheme.colors
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackgroundColor),
+        colors = CardDefaults.cardColors(containerColor = app.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column {
@@ -417,27 +424,27 @@ fun SettingsSection(items: List<SettingsItem>) {
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.title,
-                            tint = OnSurfaceColor,
+                            tint = app.textPrimary,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
                             text = item.title,
                             fontSize = 16.sp,
-                            color = OnSurfaceColor
+                            color = app.textPrimary
                         )
                     }
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = "Ir",
-                        tint = Color(0xFF9CA3AF)
+                        tint = app.textSecondary
                     )
                 }
 
                 if (index < items.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 20.dp),
-                        color = Color(0xFFF3F4F6),
+                        color = app.divider,
                         thickness = 1.dp
                     )
                 }

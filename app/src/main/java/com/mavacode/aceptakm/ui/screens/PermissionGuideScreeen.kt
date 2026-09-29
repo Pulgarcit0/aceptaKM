@@ -7,7 +7,12 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,7 +39,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mavacode.aceptakm.feature.permisos.PermisosManager
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -48,9 +54,6 @@ private data class PermissionCardData(
     val subtitle: String,
     val description: String
 )
-
-private val MainBlueGuide = Color(0xFF0058BE)
-private val IconBgGuide = Color(0xFFE5EEFF)
 
 @Composable
 fun PermissionGuideOverlay(onAllGranted: () -> Unit = {}) {
@@ -112,7 +115,7 @@ fun PermissionGuideOverlay(onAllGranted: () -> Unit = {}) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF1B1B25).copy(alpha = 0.82f)),
+                .background(Color(0xFF0F1115).copy(alpha = 0.82f)),
             contentAlignment = Alignment.Center
         ) {
             AnimatedContent(
@@ -177,13 +180,16 @@ private fun PermissionCard(
     data: PermissionCardData,
     onGrantClick: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
             .wrapContentHeight(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = app.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Column(
@@ -194,13 +200,13 @@ private fun PermissionCard(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(IconBgGuide),
+                    .background(app.iconBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = data.icon,
                     contentDescription = null,
-                    tint = MainBlueGuide,
+                    tint = cs.primary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -209,7 +215,7 @@ private fun PermissionCard(
                 text = data.subtitle.uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MainBlueGuide,
+                color = cs.primary,
                 letterSpacing = 1.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -217,7 +223,7 @@ private fun PermissionCard(
                 text = data.title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF111827),
+                color = app.textPrimary,
                 textAlign = TextAlign.Center,
                 lineHeight = 26.sp
             )
@@ -225,7 +231,7 @@ private fun PermissionCard(
             Text(
                 text = data.description,
                 fontSize = 14.sp,
-                color = Color(0xFF6B7280),
+                color = app.textSecondary,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
@@ -237,8 +243,8 @@ private fun PermissionCard(
                     .height(52.dp),
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MainBlueGuide,
-                    contentColor = Color.White
+                    containerColor = cs.primary,
+                    contentColor = cs.onPrimary
                 )
             ) {
                 Text("Conceder permiso", fontSize = 16.sp, fontWeight = FontWeight.Bold)

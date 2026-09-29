@@ -3,9 +3,8 @@ package com.mavacode.aceptakm.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +13,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,33 +26,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mavacode.aceptakm.ui.theme.AceptaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CentroAyudaScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
     var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("aceptaKM Centro de Ayuda", color = Color(0xFF0052CC), fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "AceptaKm Centro de Ayuda",
+                        color = cs.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = Color(0xFF0052CC))
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar", tint = cs.primary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF9FAFB))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = cs.background,
+                    titleContentColor = cs.primary
+                )
             )
         },
-        containerColor = Color(0xFFF9FAFB)
+        containerColor = cs.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -60,12 +74,11 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- HEADER Y BÚSQUEDA ---
             Text(
                 text = "¿Cómo podemos ayudarte hoy?",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0052CC),
+                color = cs.primary,
                 textAlign = TextAlign.Center
             )
 
@@ -79,16 +92,24 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White
+                    unfocusedContainerColor = app.card,
+                    focusedContainerColor = app.card,
+                    focusedBorderColor = cs.primary,
+                    unfocusedBorderColor = app.outline,
+                    focusedTextColor = app.textPrimary,
+                    unfocusedTextColor = app.textPrimary,
+                    cursorColor = cs.primary
                 )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Tendencias
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                Text("Tendencias: ", fontSize = 12.sp, color = Color.Gray)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Tendencias: ", fontSize = 12.sp, color = app.textSecondary)
                 Spacer(modifier = Modifier.width(4.dp))
                 ChipAyuda("Activar GPS")
                 Spacer(modifier = Modifier.width(4.dp))
@@ -97,11 +118,11 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- CATEGORÍAS ---
             Text(
                 text = "Explorar por categorías",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
+                color = cs.onBackground,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Start
             )
@@ -119,18 +140,18 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- PREGUNTAS FRECUENTES ---
             Text(
                 text = "Preguntas Frecuentes",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
+                color = cs.onBackground,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "Encuentra respuestas rápidas a las dudas más comunes.",
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = app.textSecondary,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
@@ -142,11 +163,10 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- BANNER DE SOPORTE (TELEGRAM / WHATSAPP) ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF2563EB)) // Azul fuerte
+                colors = CardDefaults.cardColors(containerColor = cs.primary)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -154,30 +174,35 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
                 ) {
                     Text(
                         text = "¿Necesitas más ayuda?",
-                        color = Color.White,
+                        color = cs.onPrimary,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Nuestro equipo de soporte está disponible 24/7 para ayudarte con cualquier inconveniente técnico o duda sobre el servicio.",
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = cs.onPrimary.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Botón WhatsApp
                     Button(
                         onClick = {
-                            val url = "https://chat.whatsapp.com/JiSCGFLZFshAQqY9KVaDcB?s=cl&p=a&ilr=0&amv=0" // <-- CAMBIA ESTO
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            try { context.startActivity(intent) } catch (e: Exception) {
+                            val url = "https://chat.whatsapp.com/JiSCGFLZFshAQqY9KVaDcB?s=cl&p=a&ilr=0&amv=0"
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            } catch (e: Exception) {
                                 Toast.makeText(context, "WhatsApp no instalado", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF2563EB))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = cs.onPrimary,
+                            contentColor = cs.primary
+                        )
                     ) {
                         Icon(Icons.Outlined.Chat, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -186,18 +211,20 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Botón Telegram
                     OutlinedButton(
                         onClick = {
-                            val url = "https://t.me/+uyhcKsrmErBhZmMx" // <-- CAMBIA ESTO
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            try { context.startActivity(intent) } catch (e: Exception) {
+                            val url = "https://t.me/+uyhcKsrmErBhZmMx"
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            } catch (e: Exception) {
                                 Toast.makeText(context, "Telegram no instalado", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.onPrimary),
+                        border = BorderStroke(1.dp, cs.onPrimary.copy(alpha = 0.5f))
                     ) {
                         Icon(Icons.Outlined.Send, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -213,48 +240,72 @@ fun CentroAyudaScreen(onBackClick: () -> Unit) {
 
 @Composable
 fun ChipAyuda(texto: String) {
+    val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(Color(0xFFE0E7FF))
+            .background(cs.primary.copy(alpha = 0.15f))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(text = texto, color = Color(0xFF4338CA), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = texto,
+            color = cs.primary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
 @Composable
-fun CategoriaCard(icono: ImageVector, titulo: String, subtitulo: String, modifier: Modifier = Modifier) {
+fun CategoriaCard(
+    icono: ImageVector,
+    titulo: String,
+    subtitulo: String,
+    modifier: Modifier = Modifier
+) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = app.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Icon(imageVector = icono, contentDescription = null, tint = Color(0xFF0052CC))
+            Icon(imageVector = icono, contentDescription = null, tint = cs.primary)
             Spacer(modifier = Modifier.height(12.dp))
-            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(titulo, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = app.textPrimary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(subtitulo, fontSize = 12.sp, color = Color.Gray, lineHeight = 14.sp)
+            Text(subtitulo, fontSize = 12.sp, color = app.textSecondary, lineHeight = 14.sp)
         }
     }
 }
 
 @Composable
 fun FAQItem(pregunta: String) {
+    val cs = MaterialTheme.colorScheme
+    val app = AceptaTheme.colors
     Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = app.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3F4F6))
+        border = BorderStroke(1.dp, app.outline)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(pregunta, fontSize = 14.sp, color = Color.DarkGray, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Expandir", tint = Color(0xFF0052CC))
+            Text(
+                pregunta,
+                fontSize = 14.sp,
+                color = app.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Expandir", tint = cs.primary)
         }
     }
 }
