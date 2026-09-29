@@ -255,14 +255,15 @@ object ViajeParser {
     }
 
     /**
-     * Pesos pill: "Tarifa base dinámica de $6.20", "base dinámica de $X", "dinámica de $X".
+     * Pesos pill: "Tarifa base dinámica de $6.20", "Aumento de $9.00 incluido", etc.
      * Does NOT match factor form "Dinámica x1.3".
      */
     private fun extraerMontoDinamica(texto: String): Double? {
         val patterns = listOf(
             Regex("""(?i)tarifa\s+base\s+din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
             Regex("""(?i)base\s+din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
-            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*([\d.,]+)""")
+            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
+            Regex("""(?i)aumento\s+de\s*\$?\s*([\d.,]+)\s+incluido""")
         )
         for (p in patterns) {
             p.find(texto)?.let { match ->
@@ -292,7 +293,8 @@ object ViajeParser {
     private fun spansMontoDinamica(texto: String): List<IntRange> {
         val patterns = listOf(
             Regex("""(?i)(?:tarifa\s+)?base\s+din[aá]mica\s+de\s*\$?\s*[\d.,]+"""),
-            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*[\d.,]+""")
+            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*[\d.,]+"""),
+            Regex("""(?i)aumento\s+de\s*\$?\s*[\d.,]+\s+incluido""")
         )
         return patterns.flatMap { it.findAll(texto).map { m -> m.range }.toList() }
     }
@@ -313,7 +315,7 @@ object ViajeParser {
             if (montoDinamica != null && kotlin.math.abs(valor - montoDinamica) < 0.001) {
                 val start = match.range.first
                 val ctx = texto.substring(maxOf(0, start - 48), start).lowercase()
-                if (ctx.contains("dinám") || ctx.contains("dinam")) return@mapNotNull null
+                if (ctx.contains("dinám") || ctx.contains("dinam") || ctx.contains("aumento")) return@mapNotNull null
             }
             valor
         }.toList()
