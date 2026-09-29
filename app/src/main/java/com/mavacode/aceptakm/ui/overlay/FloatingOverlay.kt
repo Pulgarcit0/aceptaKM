@@ -11,9 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.Close
@@ -301,12 +303,53 @@ fun AceptaKMCard(tripData: TripData, onClose: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     )
+                    val tieneDinamica = tripData.montoDinamica != null || tripData.factorDinamica != null
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$${tripData.gananciaNeta}",
+                            color = colors.textPrimary,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (tieneDinamica) {
+                            // Rayo amarillo sobre chip oscuro: se lee igual en tema claro y oscuro.
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .size(26.dp)
+                                    .background(Color(0xFF1C1F26), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Bolt,
+                                    contentDescription = "Incluye dinámica",
+                                    tint = Color(0xFFFFD600),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
                     Text(
-                        text = "$${tripData.gananciaNeta}",
-                        color = colors.textPrimary,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Tarifa $${tripData.pagoBruto}",
+                        color = colors.textSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
+                    if (tripData.montoDinamica != null || tripData.factorDinamica != null) {
+                        val dinamicaTxt = buildString {
+                            append("Dinámica")
+                            tripData.montoDinamica?.let { append(" +$$it") }
+                            tripData.factorDinamica?.let { append(" x$it") }
+                        }
+                        Text(
+                            text = dinamicaTxt,
+                            color = colors.textSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 1.dp)
+                        )
+                    }
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
                         thickness = 1.dp,

@@ -83,7 +83,9 @@ object ViajeParser {
         }
 
         try {
-            val precioBruto = extraerPrecio(texto) ?: return null
+            val montoDinamica = extraerMontoDinamica(texto)
+            val factorDinamica = extraerFactorDinamica(texto)
+            val precioBruto = extraerPrecio(texto, montoDinamica) ?: return null
             var distanciaTotal = 0.0
             var tiempoTotal = 0
 
@@ -151,7 +153,14 @@ object ViajeParser {
                 return null
             }
 
-            Log.d("aceptakm_OCR", "✅ Detectado [$plataformaDetectada] | $$precioBruto | ${distanciaTotal}km | ${tiempoTotal}min")
+            val dinamicaLog = when {
+                montoDinamica != null && factorDinamica != null ->
+                    " | dinámica +$$montoDinamica x$factorDinamica"
+                montoDinamica != null -> " | dinámica +$$montoDinamica"
+                factorDinamica != null -> " | dinámica x$factorDinamica"
+                else -> ""
+            }
+            Log.d("aceptakm_OCR", "✅ Detectado [$plataformaDetectada] | $$precioBruto | ${distanciaTotal}km | ${tiempoTotal}min$dinamicaLog")
 
             // --- 6. CÁLCULOS FINANCIEROS Y DE CONFIGURACIÓN ---
             val prefs = context.getSharedPreferences("aceptakmPrefs", Context.MODE_PRIVATE)
@@ -219,7 +228,9 @@ object ViajeParser {
                 gananciaNeta = gananciaNeta.redondear2Dec(),
                 pagoPorKm = pagoPorKm.redondear2Dec(),
                 nivelRentabilidad = nivel,
-                sugerencia = sugerenciaTexto
+                sugerencia = sugerenciaTexto,
+                montoDinamica = montoDinamica?.redondear2Dec(),
+                factorDinamica = factorDinamica
             )
 
         } catch (e: Exception) {
@@ -230,26 +241,88 @@ object ViajeParser {
 
     // ==================== HELPERS DE EXTRACCIÓN ====================
 
-    private fun extraerPrecio(texto: String): Double? {
-        val regex = Regex("""(?:\+?\s*MXN\$?|\$)\s*([\d.,]+)""", RegexOption.IGNORE_CASE)
-        val match = regex.find(texto) ?: return null
-        val raw = match.groupValues[1]
-
-        val valor = when {
-            // 18,885.70 → quitar comas de miles
+    /** Parse money string supporting MX / EU decimal styles. */
+    private fun parseNumero(raw: String): Double? {
+        return when {
             raw.contains(",") && raw.contains(".") ->
                 raw.replace(",", "").toDoubleOrNull()
-            // 18.885,70 (formato EU, raro aquí pero posible)
             raw.contains(".") && raw.lastIndexOf(",") > raw.lastIndexOf(".") ->
                 raw.replace(".", "").replace(",", ".").toDoubleOrNull()
-            // solo coma: 25,58 → decimal
             raw.contains(",") && !raw.contains(".") ->
                 raw.replace(",", ".").toDoubleOrNull()
             else -> raw.toDoubleOrNull()
-        } ?: return null
+        }
+    }
 
-        if (valor <= 0.0) return null
-        return valor
+    /**
+     * Pesos pill: "Tarifa base dinámica de $6.20", "Aumento de $9.00 incluido", etc.
+     * Does NOT match factor form "Dinámica x1.3".
+     */
+    private fun extraerMontoDinamica(texto: String): Double? {
+        val patterns = listOf(
+            Regex("""(?i)tarifa\s+base\s+din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
+            Regex("""(?i)base\s+din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
+            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*([\d.,]+)"""),
+            Regex("""(?i)aumento\s+de\s*\$?\s*([\d.,]+)\s+incluido""")
+        )
+        for (p in patterns) {
+            p.find(texto)?.let { match ->
+                val v = parseNumero(match.groupValues[1])
+                if (v != null && v > 0.0) return v
+            }
+        }
+        return null
+    }
+
+    /** Factor form: "Dinámica x1.3" / "⚡ Dinámica x1.6". */
+    private fun extraerFactorDinamica(texto: String): Double? {
+        val patterns = listOf(
+            Regex("""(?i)⚡\s*din[aá]mica\s*x\s*([\d.,]+)"""),
+            Regex("""(?i)din[aá]mica\s*x\s*([\d.,]+)""")
+        )
+        for (p in patterns) {
+            p.find(texto)?.let { match ->
+                val v = parseNumero(match.groupValues[1])
+                if (v != null && v > 0.0) return v
+            }
+        }
+        return null
+    }
+
+    /** Spans of dinámica-pesos phrases so fare extraction can skip those `$` amounts. */
+    private fun spansMontoDinamica(texto: String): List<IntRange> {
+        val patterns = listOf(
+            Regex("""(?i)(?:tarifa\s+)?base\s+din[aá]mica\s+de\s*\$?\s*[\d.,]+"""),
+            Regex("""(?i)din[aá]mica\s+de\s*\$?\s*[\d.,]+"""),
+            Regex("""(?i)aumento\s+de\s*\$?\s*[\d.,]+\s+incluido""")
+        )
+        return patterns.flatMap { it.findAll(texto).map { m -> m.range }.toList() }
+    }
+
+    /**
+     * Large fare (MXN). Never pick the dinámica pesos pill when a larger total exists.
+     * Skips `$` amounts inside dinámica-pesos phrases; prefers max among remaining candidates.
+     */
+    private fun extraerPrecio(texto: String, montoDinamica: Double? = null): Double? {
+        val skipSpans = spansMontoDinamica(texto)
+        val regex = Regex("""(?:\+?\s*MXN\$?|\$)\s*([\d.,]+)""", RegexOption.IGNORE_CASE)
+
+        val candidatos = regex.findAll(texto).mapNotNull { match ->
+            if (skipSpans.any { span -> match.range.first in span }) return@mapNotNull null
+            val valor = parseNumero(match.groupValues[1]) ?: return@mapNotNull null
+            if (valor <= 0.0) return@mapNotNull null
+            // Extra guard: same numeric value as dinámica monto near "dinámica"
+            if (montoDinamica != null && kotlin.math.abs(valor - montoDinamica) < 0.001) {
+                val start = match.range.first
+                val ctx = texto.substring(maxOf(0, start - 48), start).lowercase()
+                if (ctx.contains("dinám") || ctx.contains("dinam") || ctx.contains("aumento")) return@mapNotNull null
+            }
+            valor
+        }.toList()
+
+        if (candidatos.isEmpty()) return null
+        // Prefer the largest reasonable fare (total vs dinámica pill)
+        return candidatos.maxOrNull()
     }
 
     private fun extraerSumaKm(texto: String): Double {
