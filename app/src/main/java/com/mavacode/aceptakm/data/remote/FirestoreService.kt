@@ -1,6 +1,7 @@
 package com.mavacode.aceptakm.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -156,6 +157,52 @@ fun actualizarConfiguracionEnFirestore(
         .set(updates, SetOptions.merge())
         .addOnSuccessListener { onComplete(true) }
         .addOnFailureListener { onComplete(false) }
+}
+
+// =====================================================
+// LECTURA DE AJUSTES DE PERFIL (solo lectura)
+// =====================================================
+
+/**
+ * Ajustes de filtros guardados en Usuarios/{uid}. Cada campo es null si no existe
+ * en Firestore o si su valor no es numérico. 0 es un valor válido (no significa vacío).
+ */
+data class AjustesPerfil(
+    val tarifaMinima: Double? = null,
+    val retencionImpuestos: Double? = null,
+    val distanciaMaxima: Double? = null,
+    val gananciaNetaPorKm: Double? = null
+)
+
+/**
+ * Extrae los ajustes de un snapshot ya leído (sin segunda lectura a la red).
+ * Firestore puede devolver Long o Double, por eso se usa Number.
+ */
+fun extraerAjustesDePerfil(doc: DocumentSnapshot): AjustesPerfil {
+    fun numero(campo: String): Double? =
+        (doc.get(campo) as? Number)?.toDouble()?.takeIf { it.isFinite() }
+
+    return AjustesPerfil(
+        tarifaMinima = numero("tarifaMinima"),
+        retencionImpuestos = numero("retencionImpuestos"),
+        distanciaMaxima = numero("distanciaMaxima"),
+        gananciaNetaPorKm = numero("gananciaNetaPorKm")
+    )
+}
+
+/**
+ * Lee UNA vez los ajustes de perfil de Usuarios/{uid}.
+ * Devuelve null si la lectura falla o el documento no existe.
+ */
+fun leerAjustesDePerfil(uid: String, onResultado: (AjustesPerfil?) -> Unit) {
+    FirebaseFirestore.getInstance()
+        .collection("Usuarios")
+        .document(uid)
+        .get()
+        .addOnSuccessListener { doc ->
+            onResultado(if (doc.exists()) extraerAjustesDePerfil(doc) else null)
+        }
+        .addOnFailureListener { onResultado(null) }
 }
 
 // =====================================================
