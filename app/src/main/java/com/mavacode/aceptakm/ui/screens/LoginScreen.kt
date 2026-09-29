@@ -2,6 +2,7 @@ package com.mavacode.aceptakm.ui.screens
 
 import android.app.Activity
 import android.util.Log
+import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,18 +39,42 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.FirebaseException
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.mavacode.aceptakm.ui.theme.AceptaTheme
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
 enum class LoginStep {
     CHOOSE_METHOD, ENTER_PHONE, ENTER_EMAIL, ENTER_CODE
+}
+
+/** Mensajes en español por tipo de error de FirebaseAuth para el flujo de correo. */
+private fun mensajeErrorAuthCorreo(e: Exception, registro: Boolean): String = when (e) {
+    is FirebaseNetworkException -> "Sin conexión. Revisa tu internet."
+    is FirebaseTooManyRequestsException -> "Demasiados intentos. Espera unos minutos."
+    is FirebaseAuthUserCollisionException -> "Ese correo ya tiene cuenta. Inicia sesión."
+    // WeakPassword hereda de InvalidCredentials: debe ir antes.
+    is FirebaseAuthWeakPasswordException -> "La contraseña es muy débil. Usa al menos 6 caracteres."
+    is FirebaseAuthInvalidUserException ->
+        if (e.errorCode == "ERROR_USER_DISABLED") "Esta cuenta está deshabilitada."
+        else "No existe una cuenta con ese correo. Usa 'Crear cuenta'."
+    is FirebaseAuthInvalidCredentialsException ->
+        // Con la protección de enumeración de correos, un usuario inexistente llega también aquí,
+        // por eso el mensaje de login es neutral.
+        if (registro) "El correo no es válido." else "Correo o contraseña incorrectos."
+    else -> "No pudimos completar la operación. Inténtalo de nuevo."
 }
 
 @Composable
@@ -68,6 +93,8 @@ fun LoginScreen(
     var currentStep by remember { mutableStateOf(LoginStep.CHOOSE_METHOD) }
     var inputValue by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var isRegisterMode by remember { mutableStateOf(false) }
     var verificationCode by remember { mutableStateOf("") }
 
     var storedVerificationId by remember { mutableStateOf("") }
@@ -158,42 +185,134 @@ fun LoginScreen(
         }
     }
 
-    fun loginConCorreo() {
-        val email = inputValue.trim()
+    // Causa raíz: el flujo Entrar/Crear cuenta estaba fusionado en un solo try/catch; cualquier
+    // fallo de signIn (usuario inexistente, typo, contraseña incorrecta, sin red, too many requests)
+    // caía a createUserWithEmailAndPassword, creando cuentas basura y mostrando errores engañosos
+    // de UserCollision. Ahora son dos acciones explícitas: iniciarSesionConCorreo() NUNCA crea
+    // cuentas y registrarConCorreo() es la única que llama a createUserWithEmailAndPassword.
+    // Además, onSuccess()/onNeedVerify() se ejecutan FUERA del try/catch de autenticación.
+
+    // Devuelve el correo normalizado (trim + lowercase) o null (y avisa) si el formato no es válido.
+    fun correoValidoONull(): String? {
+        val email = inputValue.trim().lowercase()
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(context, "Escribe un correo válido.", Toast.LENGTH_SHORT).show()
+            return null
+        }
+        return email
+    }
+
+    // Tras autenticarse: si el correo no está verificado, envía verificación y va a verify_email.
+    // No se bloquea la navegación esperando el envío; solo se avisa si el envío falla.
+    fun continuarTrasAutenticar(recienRegistrado: Boolean) {
+        val user = auth.currentUser
+        if (user != null && !user.isEmailVerified) {
+            user.sendEmailVerification().addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.e("AceptaKmAuth", "Error enviando verificación", task.exception)
+                    Toast.makeText(
+                        context,
+                        "No pudimos enviar el correo de verificación. Inténtalo de nuevo más tarde.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            Toast.makeText(
+                context,
+                if (recienRegistrado) "Te enviamos un enlace. Confirma el correo para entrar."
+                else "Confirma tu correo para continuar",
+                Toast.LENGTH_LONG
+            ).show()
+            onNeedVerify()
+        } else {
+            onSuccess()
+        }
+    }
+
+    fun iniciarSesionConCorreo() {
+        val email = correoValidoONull() ?: return
         val pass = password
-        if (email.isBlank() || pass.length < 6) {
-            Toast.makeText(context, "Correo y contraseña (mín. 6 caracteres)", Toast.LENGTH_SHORT).show()
+        if (pass.length < 6) {
+            Toast.makeText(context, "La contraseña debe tener al menos 6 caracteres.", Toast.LENGTH_SHORT).show()
             return
         }
         isLoading = true
         coroutineScope.launch {
-            try {
+            // Solo la llamada de autenticación va dentro del try/catch. Aquí NUNCA se crea usuario.
+            val error: Exception? = try {
                 auth.signInWithEmailAndPassword(email, pass).await()
-                val user = auth.currentUser
-                isLoading = false
-                if (user != null && !user.isEmailVerified) {
-                    user.sendEmailVerification()
-                    Toast.makeText(context, "Confirma tu correo para continuar", Toast.LENGTH_LONG).show()
-                    onNeedVerify()
-                } else {
-                    onSuccess()
-                }
-            } catch (_: Exception) {
-                try {
-                    auth.createUserWithEmailAndPassword(email, pass).await()
-                    auth.currentUser?.sendEmailVerification()
-                    isLoading = false
-                    Toast.makeText(
-                        context,
-                        "Te enviamos un enlace. Confirma el correo para entrar.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    onNeedVerify()
-                } catch (e2: Exception) {
-                    isLoading = false
-                    Toast.makeText(context, "Error: ${e2.message}", Toast.LENGTH_LONG).show()
-                }
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("AceptaKmAuth", "Error en signIn con correo", e)
+                e
             }
+            isLoading = false
+            if (error != null) {
+                Toast.makeText(context, mensajeErrorAuthCorreo(error, registro = false), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            continuarTrasAutenticar(recienRegistrado = false)
+        }
+    }
+
+    fun registrarConCorreo() {
+        val email = correoValidoONull() ?: return
+        val pass = password
+        if (pass.length < 6) {
+            Toast.makeText(context, "La contraseña debe tener al menos 6 caracteres.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (pass != confirmPassword) {
+            Toast.makeText(context, "Las contraseñas no coinciden.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        isLoading = true
+        coroutineScope.launch {
+            val error: Exception? = try {
+                auth.createUserWithEmailAndPassword(email, pass).await()
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("AceptaKmAuth", "Error en registro con correo", e)
+                e
+            }
+            isLoading = false
+            if (error != null) {
+                Toast.makeText(context, mensajeErrorAuthCorreo(error, registro = true), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            continuarTrasAutenticar(recienRegistrado = true)
+        }
+    }
+
+    fun recuperarContrasena() {
+        val email = correoValidoONull() ?: return
+        isLoading = true
+        coroutineScope.launch {
+            val error: Exception? = try {
+                auth.sendPasswordResetEmail(email).await()
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("AceptaKmAuth", "Error enviando restablecimiento", e)
+                e
+            }
+            isLoading = false
+            // Mensaje neutral para no revelar si el correo tiene cuenta.
+            val msg = when (error) {
+                null -> "Si el correo tiene cuenta, te enviamos un enlace para restablecer la contraseña."
+                is FirebaseNetworkException -> "Sin conexión. Revisa tu internet."
+                is FirebaseTooManyRequestsException -> "Demasiados intentos. Espera unos minutos."
+                is FirebaseAuthInvalidUserException,
+                is FirebaseAuthInvalidCredentialsException ->
+                    "Si el correo tiene cuenta, te enviamos un enlace para restablecer la contraseña."
+                else -> "No pudimos enviar el enlace. Inténtalo de nuevo."
+            }
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -223,6 +342,8 @@ fun LoginScreen(
                             currentStep = LoginStep.CHOOSE_METHOD
                             inputValue = ""
                             password = ""
+                            confirmPassword = ""
+                            isRegisterMode = false
                             verificationCode = ""
                         }) {
                             Icon(
@@ -262,7 +383,9 @@ fun LoginScreen(
                 val subtitleText = when (currentStep) {
                     LoginStep.CHOOSE_METHOD -> "Tu compañero de ruta confiable.\nElige cómo iniciar sesión."
                     LoginStep.ENTER_PHONE -> "Ingresa tu número de 10 dígitos (México).\nTe enviaremos un código SMS."
-                    LoginStep.ENTER_EMAIL -> "Ingresa tu correo y contraseña.\nSi no tienes cuenta, se creará automáticamente."
+                    LoginStep.ENTER_EMAIL ->
+                        if (isRegisterMode) "Crea tu cuenta con correo y contraseña.\nTe enviaremos un enlace para confirmar tu correo."
+                        else "Ingresa tu correo y contraseña para iniciar sesión.\nSi aún no tienes cuenta, elige 'Crear cuenta'."
                     LoginStep.ENTER_CODE -> "Ingresa el código de 6 dígitos\nenviado a:\n$inputValue"
                 }
 
@@ -369,14 +492,32 @@ fun LoginScreen(
                             colors = fieldColors
                         )
 
+                        if (isRegisterMode) {
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it },
+                                label = { Text("Confirmar contraseña") },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = fieldColors
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
-                            onClick = { loginConCorreo() },
+                            onClick = {
+                                if (isRegisterMode) registrarConCorreo() else iniciarSesionConCorreo()
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
-                            enabled = inputValue.isNotBlank() && password.length >= 6 && !isLoading,
+                            enabled = inputValue.isNotBlank() && password.length >= 6 &&
+                                (!isRegisterMode || confirmPassword.isNotBlank()) && !isLoading,
                             colors = ButtonDefaults.buttonColors(containerColor = cs.primary)
                         ) {
                             if (isLoading) {
@@ -386,8 +527,31 @@ fun LoginScreen(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Entrar / Crear cuenta")
+                                Text(if (isRegisterMode) "Crear cuenta" else "Iniciar sesión")
                             }
+                        }
+
+                        if (!isRegisterMode) {
+                            TextButton(
+                                onClick = { recuperarContrasena() },
+                                enabled = !isLoading
+                            ) {
+                                Text("¿Olvidaste tu contraseña?", color = cs.primary)
+                            }
+                        }
+
+                        TextButton(
+                            onClick = {
+                                isRegisterMode = !isRegisterMode
+                                confirmPassword = ""
+                            },
+                            enabled = !isLoading
+                        ) {
+                            Text(
+                                if (isRegisterMode) "¿Ya tienes cuenta? Iniciar sesión"
+                                else "¿No tienes cuenta? Crear cuenta",
+                                color = cs.primary
+                            )
                         }
                     }
 

@@ -52,6 +52,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.mavacode.aceptakm.data.BillingManager
 import com.mavacode.aceptakm.data.remote.actualizarConfiguracionEnFirestore
 import com.mavacode.aceptakm.data.remote.crearUsuarioEnFirestore
+import com.mavacode.aceptakm.data.remote.extraerAjustesDePerfil
 import com.mavacode.aceptakm.data.remote.obtenerEstadoSuscripcion
 import com.mavacode.aceptakm.feature.asistente.FloatingService
 import com.mavacode.aceptakm.feature.permisos.rememberScreenCaptureLauncher
@@ -145,6 +146,21 @@ fun AceptaKm(
             .get()
             .addOnSuccessListener { doc ->
                 val yaConfiguro = doc.getDouble("tarifaMinima") != null
+                if (yaConfiguro) {
+                    // Releer ajustes de Firestore a prefs ANTES de navegar (teléfono nuevo / reinstalación).
+                    // Nunca bloquea la navegación: cualquier error se ignora y se conservan las prefs actuales.
+                    try {
+                        val ajustes = extraerAjustesDePerfil(doc)
+                        sharedPreferences.edit {
+                            ajustes.tarifaMinima?.let { putFloat("tarifaMin", it.toFloat()) }
+                            ajustes.retencionImpuestos?.let { putFloat("impuesto", it.toFloat()) }
+                            ajustes.distanciaMaxima?.let { putFloat("distMax", it.toFloat()) }
+                            ajustes.gananciaNetaPorKm?.let { putFloat("ganancia", it.toFloat()) }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("AceptaKm", "No se pudieron releer los ajustes de perfil", e)
+                    }
+                }
                 val destino = if (yaConfiguro) "home" else "google_success"
                 navController.navigate(destino) {
                     popUpTo(desde) { inclusive = true }
