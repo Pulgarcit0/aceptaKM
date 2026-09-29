@@ -35,7 +35,9 @@ data class TripData(
     val gananciaNeta: Double,
     val pagoPorKm: Double,
     val nivelRentabilidad: NivelRentabilidad,
-    val sugerencia: String
+    val sugerencia: String,
+    val montoDinamica: Double? = null,   // pesos, e.g. 6.20 from "Tarifa base dinámica de $6.20"
+    val factorDinamica: Double? = null   // e.g. 1.3 / 1.6 from "Dinámica x1.3"
 )
 
 class OcrCaptureManager(
